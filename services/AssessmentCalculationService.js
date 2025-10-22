@@ -103,6 +103,7 @@ class AssessmentCalculationService {
 USER INPUT:
 - Name: ${assessmentData.name}
 - Company: ${assessmentData.company}
+- Industry: ${assessmentData.industry}
 - Work Too Much: ${assessmentData.workTooMuch}
 - Assign Tasks: ${assessmentData.assignTasks}
 - Want More Clients: ${assessmentData.wantMoreClients}
@@ -117,16 +118,19 @@ ASSESSMENT REQUIREMENTS:
 4. Keep this standard since this is a funnel for our business
 5. Prepare them for a deeper dive once they become a client
 
-OUTPUT FORMAT (JSON):
+CRITICAL: You MUST return ONLY valid JSON in this exact format. Do not include any other text, explanations, or markdown formatting.
+
 {
-  "igniteGrowthAssessment": "Ignite Growth Assessment",
-  "relateWithUser": "It sounds like you are feeling [their workload situation] and want [their growth goals] - repeat back their specific goals",
-  "growthNeeds": "To get there, you need [more BD spend/activities] and a systematic approach to [specific areas they need help with]",
-  "deeperDive": "This assessment shows the foundation for a deeper dive into your specific growth strategy once you become a client",
-  "nextSteps": "Ready to take the next step in your growth journey?"
+  "relateWithUser": "It sounds like you are feeling [their specific workload situation] and want [their specific growth goals]. You want [repeat back their exact goals from the assessment].",
+  "growthNeeds": "To get there, you need [more BD spend/activities] and a systematic approach to [specific areas they need help with based on their industry and responses]."
 }
 
-Keep the tone professional, relatable, and encouraging. Focus on acknowledging their current state and connecting their goals to what they need for systematic growth.`;
+IMPORTANT: 
+- Return ONLY the JSON object above
+- No additional text, explanations, or formatting
+- Make it specific to their industry and responses
+- Keep it conversational and relatable
+- Focus on their specific situation and goals`;
   }
   
   /**
@@ -169,11 +173,8 @@ Keep the tone professional, relatable, and encouraging. Focus on acknowledging t
         console.error('❌ Failed to parse GPT response as JSON:', parseError);
       // Fallback insights if JSON parsing fails
       insights = {
-        igniteGrowthAssessment: "Ignite Growth Assessment",
-        relateWithUser: "It sounds like you are feeling overwhelmed with tasks and want to grow your business - you want more clients and better delegation.",
-        growthNeeds: "To get there, you need more business development activities and a systematic approach to delegation and growth planning.",
-        deeperDive: "This assessment shows the foundation for a deeper dive into your specific growth strategy once you become a client.",
-        nextSteps: "Ready to take the next step in your growth journey?"
+        relateWithUser: "It sounds like you are feeling overwhelmed with tasks and want to grow your business. You want more clients and better delegation to scale effectively.",
+        growthNeeds: "To get there, you need more business development activities and a systematic approach to delegation and growth planning."
       };
       }
       

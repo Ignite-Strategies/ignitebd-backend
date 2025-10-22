@@ -104,6 +104,7 @@ model Assessment {
   id          String   @id @default(cuid())
   name        String
   company     String
+  industry    String
   workTooMuch String   // Response to "Do you feel you work too much on tasks?"
   assignTasks String   // Response to "You adequately assign to others"
   wantMoreClients String // Response to "Do you want to bring on more clients?"
