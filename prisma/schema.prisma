@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  firebaseId  String   @unique
+  name        String
+  email       String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  adminOf     Company[] @relation("AdminOf")
+  staffOf     Company[] @relation("StaffOf")
+  prospects   Prospect[]
+  customers   Customer[]
+
+  @@map("users")
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  address     String?
+  annualRev   Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  adminId     String
+  admin       User     @relation("AdminOf", fields: [adminId], references: [id])
+  staff       User[]   @relation("StaffOf")
+  prospects   Prospect[]
+  customers   Customer[]
+
+  @@map("companies")
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  assignedTo  String?
+  assignedUser User?   @relation(fields: [assignedTo], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("customers")
+}
+
+model Prospect {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  assignedTo  String?
+  assignedUser User?   @relation(fields: [assignedTo], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("prospects")
+}
