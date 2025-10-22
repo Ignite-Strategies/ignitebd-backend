@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://ignitebd-frontend.vercel.app'], // Allow frontend origin
+  origin: ['http://localhost:5173', 'https://ignitebd-frontend.vercel.app', 'https://ignitestrategies.co'], // Allow frontend origin
   credentials: true // Allow cookies to be sent
 }));
 app.use(express.json());
