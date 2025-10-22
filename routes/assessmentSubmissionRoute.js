@@ -9,6 +9,7 @@ router.post('/submit', async (req, res) => {
     const { 
       name, 
       company, 
+      industry,
       workTooMuch, 
       assignTasks, 
       wantMoreClients, 
@@ -28,6 +29,7 @@ router.post('/submit', async (req, res) => {
       data: {
         name,
         company,
+        industry,
         workTooMuch,
         assignTasks,
         wantMoreClients,
