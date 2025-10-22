@@ -23,6 +23,7 @@ model User {
   staffOf     Company[] @relation("StaffOf")
   prospects   Prospect[]
   customers   Customer[]
+  pipelineEntries BDPipelineEntry[] @relation("AssignedPipelineEntries")
 
   @@map("users")
 }
@@ -41,6 +42,7 @@ model Company {
   staff       User[]   @relation("StaffOf")
   prospects   Prospect[]
   customers   Customer[]
+  pipelineEntries BDPipelineEntry[]
 
   @@map("companies")
 }
@@ -56,6 +58,7 @@ model Customer {
   assignedUser User?   @relation(fields: [assignedTo], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  pipelineEntries BDPipelineEntry[] @relation("CustomerPipelineEntries")
 
   @@map("customers")
 }
@@ -71,6 +74,46 @@ model Prospect {
   assignedUser User?   @relation(fields: [assignedTo], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  pipelineEntries BDPipelineEntry[] @relation("ProspectPipelineEntries")
 
   @@map("prospects")
+}
+
+model BDPipelineEntry {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  customerId  String?  // Optional - if they're already a customer
+  customer    Customer? @relation("CustomerPipelineEntries", fields: [customerId], references: [id])
+  prospectId  String?  // Optional - if they're still a prospect
+  prospect    Prospect? @relation("ProspectPipelineEntries", fields: [prospectId], references: [id])
+  stage       String   // Pipeline stage (e.g., "aware", "interested", "qualified", "proposal", "closed_won", "closed_lost")
+  status      String   // Status within stage (e.g., "active", "paused", "completed")
+  value       Float?   // Deal value
+  probability Float?   // Probability of closing (0-100)
+  notes       String?  // Additional notes
+  assignedTo  String?
+  assignedUser User?   @relation("AssignedPipelineEntries", fields: [assignedTo], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("bd_pipeline_entries")
+}
+
+model Assessment {
+  id          String   @id @default(cuid())
+  name        String
+  company     String
+  workTooMuch String   // Response to "Do you feel you work too much on tasks?"
+  assignTasks String   // Response to "You adequately assign to others"
+  wantMoreClients String // Response to "Do you want to bring on more clients?"
+  revenueGrowthPercent Int? // Revenue growth percentage they want
+  totalVolume Float?   // Total volume target
+  bdSpend     Float?   // Current BD spend
+  score       Int      // Calculated growth potential score
+  insights    String?  // JSON string of insights
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("assessments")
 }

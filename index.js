@@ -1,11 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import cookieSession from 'cookie-session';
-import authRoutes from './routes/auth.js';
-import adminUserAuthRoutes from './routes/adminUserAuth.js';
-import metricsRoutes from './routes/metrics.js';
-import bdRoutes from './routes/bd.js';
-import assessmentRoutes from './routes/assessment.js';
+import authRoute from './routes/authRoute.js';
+import adminUserAuthRoute from './routes/adminUserAuthRoute.js';
+import profileSetupRoute from './routes/profileSetupRoute.js';
+import companySetupRoute from './routes/companySetupRoute.js';
+import metricsRoute from './routes/metricsRoute.js';
+import bdRoute from './routes/bdRoute.js';
+import bdPipelineRoute from './routes/bdPipelineRoute.js';
+import assessmentRoute from './routes/assessmentRoute.js';
+import assessmentSubmissionRoute from './routes/assessmentSubmissionRoute.js';
+import assessmentResultsRoute from './routes/assessmentResultsRoute.js';
 import prisma from './db.js';
 
 const app = express();
@@ -26,11 +31,16 @@ app.use(cookieSession({
 }));
 
 // Routes
-app.use('/auth', authRoutes);
-app.use('/adminUserAuth', adminUserAuthRoutes);
-app.use('/metrics', metricsRoutes);
-app.use('/bd', bdRoutes);
-app.use('/assessment', assessmentRoutes);
+app.use('/auth', authRoute);
+app.use('/adminUserAuth', adminUserAuthRoute);
+app.use('/profileSetup', profileSetupRoute);
+app.use('/companySetup', companySetupRoute);
+app.use('/metrics', metricsRoute);
+app.use('/bd', bdRoute);
+app.use('/bdPipeline', bdPipelineRoute);
+app.use('/assessment', assessmentRoute);
+app.use('/assessmentSubmission', assessmentSubmissionRoute);
+app.use('/assessmentResults', assessmentResultsRoute);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ignite Activation API is running' });
@@ -46,6 +56,27 @@ app.get('/db-test', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🔥 Ignite Activation API running on port ${PORT}`);
-});
+// Ensure database is ready before starting server
+async function startServer() {
+  try {
+    // Generate Prisma client
+    console.log('🔄 Generating Prisma client...');
+    const { execSync } = await import('child_process');
+    execSync('npx prisma generate', { stdio: 'inherit' });
+    
+    // Push schema to database
+    console.log('🔄 Pushing database schema...');
+    execSync('npx prisma db push', { stdio: 'inherit' });
+    
+    console.log('✅ Database ready');
+    
+    app.listen(PORT, () => {
+      console.log(`🔥 Ignite Activation API running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to setup database:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

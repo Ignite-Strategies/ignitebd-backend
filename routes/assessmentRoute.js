@@ -23,28 +23,40 @@ router.post('/coefficient', (req, res) => {
 
   if (roundedScore < 50) {
     recommendations.push({
-      title: "Systematize Founder-Dependent Tasks",
-      description: "Identify and delegate repetitive tasks to free up founder time for strategic growth.",
+      title: "Systematize Legal Practice Management",
+      description: "Create standardized processes for case intake, client communication, and billing to multiply your time without multiplying your workload.",
       category: "Human Capital",
       impact: "high"
     });
     recommendations.push({
-      title: "Review Operational Spend for ROI",
-      description: "Analyze current expenditures to ensure each dollar directly contributes to measurable outcomes.",
+      title: "Optimize Marketing ROI for Law Firms",
+      description: "Focus your marketing budget on high-converting channels like referral programs and content marketing that builds trust with potential clients.",
       category: "Cost Efficiency",
       impact: "medium"
     });
+    recommendations.push({
+      title: "Streamline Client Onboarding Process",
+      description: "Reduce the time from initial consultation to signed retainer with automated intake forms and clear fee structures.",
+      category: "BD Momentum",
+      impact: "high"
+    });
   } else if (roundedScore >= 50 && roundedScore < 75) {
     recommendations.push({
-      title: "Targeted Investment in Growth Channels",
-      description: "Allocate resources to high-potential business development activities to accelerate pipeline velocity.",
+      title: "Expand High-Value Practice Areas",
+      description: "Identify and develop expertise in practice areas with higher billing rates and recurring client needs to increase revenue per client.",
       category: "BD Momentum",
       impact: "high"
     });
     recommendations.push({
-      title: "Enhance Team Autonomy & Training",
-      description: "Empower your team with clear processes and continuous learning to foster self-driven execution.",
+      title: "Implement Associate Training Programs",
+      description: "Create structured training that enables associates to handle more complex matters independently, freeing you for business development.",
       category: "Human Capital",
+      impact: "medium"
+    });
+    recommendations.push({
+      title: "Invest in Client Retention Systems",
+      description: "Build systematic follow-up processes and value-added services to increase client lifetime value and generate referrals.",
+      category: "BD Momentum",
       impact: "medium"
     });
   } else { // score >= 75
