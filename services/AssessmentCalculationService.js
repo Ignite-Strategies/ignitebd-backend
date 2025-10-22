@@ -100,16 +100,16 @@ class AssessmentCalculationService {
   static buildAssessmentPrompt(assessmentData, baseScore) {
     return `You are a business analyzer specializing in helping founders and CEOs scale their companies. Analyze the below user input and assess their growth potential.
 
-USER INPUT:
-- Name: ${assessmentData.name}
-- Company: ${assessmentData.company}
-- Industry: ${assessmentData.industry}
-- Work Too Much: ${assessmentData.workTooMuch}
-- Assign Tasks: ${assessmentData.assignTasks}
-- Want More Clients: ${assessmentData.wantMoreClients}
-- Revenue Growth Target: ${assessmentData.revenueGrowthPercent}%
-- Total Volume Target: $${assessmentData.totalVolume?.toLocaleString() || 'Not specified'}
-- BD Spend: $${assessmentData.bdSpend?.toLocaleString() || 'Not specified'}
+ASSESSMENT DATA:
+name=${assessmentData.name}
+company=${assessmentData.company}
+industry=${assessmentData.industry}
+workTooMuch=${assessmentData.workTooMuch}
+assignTasks=${assessmentData.assignTasks}
+wantMoreClients=${assessmentData.wantMoreClients}
+revenueGrowthPercent=${assessmentData.revenueGrowthPercent}%
+totalVolume=$${assessmentData.totalVolume || 'Not specified'}
+bdSpend=$${assessmentData.bdSpend || 'Not specified'}
 
 ASSESSMENT REQUIREMENTS:
 1. Relate with the user by acknowledging their feelings and goals

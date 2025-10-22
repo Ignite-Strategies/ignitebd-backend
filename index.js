@@ -11,6 +11,7 @@ import bdPipelineRoute from './routes/bdPipelineRoute.js';
 import assessmentRoute from './routes/assessmentRoute.js';
 import assessmentSubmissionRoute from './routes/assessmentSubmissionRoute.js';
 import assessmentResultsRoute from './routes/assessmentResultsRoute.js';
+import assessmentDemoRoute from './routes/assessmentDemoRoute.js';
 import prisma from './db.js';
 
 const app = express();
@@ -41,6 +42,7 @@ app.use('/bdPipeline', bdPipelineRoute);
 app.use('/assessment', assessmentRoute);
 app.use('/assessmentSubmission', assessmentSubmissionRoute);
 app.use('/assessmentResults', assessmentResultsRoute);
+app.use('/assessmentDemo', assessmentDemoRoute);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ignite Activation API is running' });
