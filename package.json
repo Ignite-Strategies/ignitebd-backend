@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node index.js",
+    "build": "echo 'No build step needed for JavaScript'",
     "start": "node index.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
