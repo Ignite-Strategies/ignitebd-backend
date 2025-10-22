@@ -118,19 +118,20 @@ ASSESSMENT REQUIREMENTS:
 4. Keep this standard since this is a funnel for our business
 5. Prepare them for a deeper dive once they become a client
 
-CRITICAL: You MUST return ONLY valid JSON in this exact format. Do not include any other text, explanations, or markdown formatting.
+OUTPUT FORMAT:
+Write exactly 2 paragraphs separated by a blank line:
 
-{
-  "relateWithUser": "It sounds like you are feeling [their specific workload situation] and want [their specific growth goals]. You want [repeat back their exact goals from the assessment].",
-  "growthNeeds": "To get there, you need [more BD spend/activities] and a systematic approach to [specific areas they need help with based on their industry and responses]."
-}
+PARAGRAPH 1: Relate with the user by acknowledging their feelings and goals. Start with "It sounds like you are feeling [their specific workload situation] and want [their specific growth goals]. You want [repeat back their exact goals from the assessment]."
+
+PARAGRAPH 2: Provide analysis and what they need. Start with "To get there, you need [more BD spend/activities] and a systematic approach to [specific areas they need help with based on their industry and responses]."
 
 IMPORTANT: 
-- Return ONLY the JSON object above
-- No additional text, explanations, or formatting
+- Write exactly 2 paragraphs, no more, no less
+- Separate paragraphs with a blank line
 - Make it specific to their industry and responses
 - Keep it conversational and relatable
-- Focus on their specific situation and goals`;
+- Focus on their specific situation and goals
+- No bullet points, no formatting, just 2 clean paragraphs`;
   }
   
   /**
@@ -165,18 +166,12 @@ IMPORTANT:
       
       const gptResponse = completion.choices[0].message.content;
       
-      // Parse JSON response
-      let insights;
-      try {
-        insights = JSON.parse(gptResponse);
-      } catch (parseError) {
-        console.error('❌ Failed to parse GPT response as JSON:', parseError);
-      // Fallback insights if JSON parsing fails
-      insights = {
-        relateWithUser: "It sounds like you are feeling overwhelmed with tasks and want to grow your business. You want more clients and better delegation to scale effectively.",
-        growthNeeds: "To get there, you need more business development activities and a systematic approach to delegation and growth planning."
+      // Split the response into 2 paragraphs
+      const paragraphs = gptResponse.split('\n\n');
+      const insights = {
+        relateWithUser: paragraphs[0] || gptResponse,
+        growthNeeds: paragraphs[1] || gptResponse
       };
-      }
       
       console.log(`✅ OpenAI assessment analysis completed successfully`);
       
