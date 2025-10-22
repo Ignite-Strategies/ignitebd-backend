@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieSession from 'cookie-session';
 import authRoutes from './routes/auth.js';
+import adminUserAuthRoutes from './routes/adminUserAuth.js';
 import metricsRoutes from './routes/metrics.js';
 import bdRoutes from './routes/bd.js';
 import assessmentRoutes from './routes/assessment.js';
@@ -26,6 +27,7 @@ app.use(cookieSession({
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/adminUserAuth', adminUserAuthRoutes);
 app.use('/metrics', metricsRoutes);
 app.use('/bd', bdRoutes);
 app.use('/assessment', assessmentRoutes);
