@@ -12,6 +12,9 @@ import assessmentRoute from './routes/assessmentRoute.js';
 import assessmentSubmissionRoute from './routes/assessmentSubmissionRoute.js';
 import assessmentResultsRoute from './routes/assessmentResultsRoute.js';
 import assessmentDemoRoute from './routes/assessmentDemoRoute.js';
+import platformProspectRoute from './routes/platformProspectRoute.js';
+import revenueRoute from './routes/revenueRoute.js';
+import targetAcquisitionRoute from './routes/targetAcquisitionRoute.js';
 import prisma from './db.js';
 
 const app = express();
@@ -43,6 +46,9 @@ app.use('/assessment', assessmentRoute);
 app.use('/assessmentSubmission', assessmentSubmissionRoute);
 app.use('/assessmentResults', assessmentResultsRoute);
 app.use('/assessmentDemo', assessmentDemoRoute);
+app.use('/platformProspect', platformProspectRoute);
+app.use('/revenue', revenueRoute);
+app.use('/target-acquisition', targetAcquisitionRoute);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ignite Activation API is running' });

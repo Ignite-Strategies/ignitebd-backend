@@ -43,6 +43,9 @@ model Company {
   prospects   Prospect[]
   customers   Customer[]
   pipelineEntries BDPipelineEntry[]
+  revenueStacks RevenueStack[]
+  humanCapitalStacks HumanCapitalStack[]
+  targetAcquisitionStacks TargetAcquisitionStack[]
 
   @@map("companies")
 }
@@ -117,4 +120,111 @@ model Assessment {
   updatedAt   DateTime @updatedAt
 
   @@map("assessments")
+}
+
+model PlatformProspect {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  company     String
+  industry    String
+  workTooMuch String   // Response to "Do you feel you work too much on tasks?"
+  assignTasks String   // Response to "You adequately assign to others"
+  wantMoreClients String // Response to "Do you want to bring on more clients?"
+  revenueGrowthPercent Int? // Revenue growth percentage they want
+  totalVolume Float?   // Total volume target
+  bdSpend     Float?   // Current BD spend
+  score       Int      // Calculated growth potential score
+  insights    String?  // JSON string of insights
+  leadStatus  String   @default("new") // new, contacted, qualified, converted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("platform_prospects")
+}
+
+model RevenueStack {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  // Product Definition
+  productName String
+  
+  // Unit Economics
+  avgGrossPerUnit Float
+  avgOrdersPerMonthPerCustomer Float
+  
+  // Volume Metrics
+  totalCustomers Int
+  
+  // Calculated Fields
+  totalUnitsPerMonth Float
+  monthlyRevenue Float
+  annualRevenue Float
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("revenue_stacks")
+}
+
+model HumanCapitalStack {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  // Team Structure
+  totalTeamMembers Int
+  avgHoursPerWeek Float
+  founderHoursPerWeek Float?
+  
+  // Production Metrics
+  hoursPerUnit Float
+  totalUnitsPerMonth Int
+  
+  // Optional Advanced
+  contractorHours Float?
+  
+  // Calculated Fields
+  totalNeededHours Float
+  teamCapacity Float
+  totalCapacity Float
+  utilization Float
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("human_capital_stacks")
+}
+
+model TargetAcquisitionStack {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  
+  // Baseline Revenue
+  previousRevenue Float
+  currentMonthlyRevenue Float
+  
+  // Target Definition
+  targetRevenue Float
+  timeHorizon Int // months
+  
+  // Revenue Delta
+  increaseNeeded Float
+  growthPercent Float
+  
+  // Operational Targets (from Revenue Stack)
+  avgUnitValue Float
+  avgUnitsPerCustomer Float
+  
+  // Calculated Fields
+  newUnitsNeeded Float
+  newCustomersNeeded Float
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("target_acquisition_stacks")
 }
