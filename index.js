@@ -73,27 +73,17 @@ app.get('/db-test', async (req, res) => {
   }
 });
 
-// Ensure database is ready before starting server
-async function startServer() {
-  try {
-    // Generate Prisma client
-    console.log('🔄 Generating Prisma client...');
-    const { execSync } = await import('child_process');
-    execSync('npx prisma generate', { stdio: 'inherit' });
-    
-    // Push schema to database
-    console.log('🔄 Pushing database schema...');
-    execSync('npx prisma db push', { stdio: 'inherit' });
-    
-    console.log('✅ Database ready');
-    
-    app.listen(PORT, () => {
-      console.log(`🔥 Ignite Activation API running on port ${PORT}`);
+// Start server - Prisma client is generated during build, schema is pushed during build
+// Database connection will be established on first use
+app.listen(PORT, () => {
+  console.log(`🔥 Ignite Activation API running on port ${PORT}`);
+  
+  // Test database connection (non-blocking)
+  prisma.$connect()
+    .then(() => {
+      console.log('✅ Database connection ready');
+    })
+    .catch((error) => {
+      console.warn('⚠️ Database connection not immediately available (will retry on first query):', error.message);
     });
-  } catch (error) {
-    console.error('❌ Failed to setup database:', error);
-    process.exit(1);
-  }
-}
-
-startServer();
+});
