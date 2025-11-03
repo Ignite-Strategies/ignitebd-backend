@@ -1,10 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import cookieSession from 'cookie-session';
-import authRoute from './routes/authRoute.js';
+import prisma from './db.js';
+
+// New organized routes (following architecture pattern)
+import authRoute from './routes/Auth/authRoute.js';
+import companyRoute from './routes/Company/companyRoute.js';
+
+// Legacy routes (to be refactored into organized structure)
 import adminUserAuthRoute from './routes/adminUserAuthRoute.js';
 import profileSetupRoute from './routes/profileSetupRoute.js';
-import companySetupRoute from './routes/companySetupRoute.js';
+import companySetupRoute from './routes/companySetupRoute.js'; // Legacy - will be replaced by Company/companyRoute.js
 import metricsRoute from './routes/metricsRoute.js';
 import bdRoute from './routes/bdRoute.js';
 import bdPipelineRoute from './routes/bdPipelineRoute.js';
@@ -15,7 +21,6 @@ import assessmentDemoRoute from './routes/assessmentDemoRoute.js';
 import platformProspectRoute from './routes/platformProspectRoute.js';
 import revenueRoute from './routes/revenueRoute.js';
 import targetAcquisitionRoute from './routes/targetAcquisitionRoute.js';
-import prisma from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -34,11 +39,15 @@ app.use(cookieSession({
   sameSite: 'lax'
 }));
 
-// Routes
-app.use('/auth', authRoute);
+// Routes - Organized by feature (following IgniteBD_ARCHITECTURE.md)
+// NEW organized routes (matching schema)
+app.use('/auth', authRoute);                    // Auth routes (Firebase auth)
+app.use('/company', companyRoute);              // Company CRUD routes
+
+// Legacy routes (to be refactored into organized folders)
 app.use('/adminUserAuth', adminUserAuthRoute);
 app.use('/profileSetup', profileSetupRoute);
-app.use('/companySetup', companySetupRoute);
+app.use('/companySetup', companySetupRoute);    // Legacy - use /company instead
 app.use('/metrics', metricsRoute);
 app.use('/bd', bdRoute);
 app.use('/bdPipeline', bdPipelineRoute);
