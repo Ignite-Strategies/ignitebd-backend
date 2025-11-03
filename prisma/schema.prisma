@@ -46,6 +46,15 @@ model Company {
   revenueStacks RevenueStack[]
   humanCapitalStacks HumanCapitalStack[]
   targetAcquisitionStacks TargetAcquisitionStack[]
+  contactLists ContactList[]
+  contacts    Contact[]
+  campaigns   Campaign[]
+  templates   Template[]
+  personas    Persona[]
+  proposals   Proposal[]
+  events      Event[]
+  meetings    Meeting[]
+  adCampaigns AdCampaign[]
 
   @@map("companies")
 }
@@ -227,4 +236,254 @@ model TargetAcquisitionStack {
   updatedAt   DateTime @updatedAt
 
   @@map("target_acquisition_stacks")
+}
+
+// ============================================
+// Contact Management Models
+// ============================================
+
+model ContactList {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  name        String
+  description String?
+  type        String?  // Campaign, Event, Organization, Custom
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  contacts    ContactListMember[]
+  campaigns   Campaign[] @relation("ContactListCampaigns")
+
+  @@map("contact_lists")
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  firstName   String?
+  lastName    String?
+  email       String?
+  phone       String?
+  companyName String?
+  title       String?
+  notes       String?
+  tags        String[] // Array of tags
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  listMemberships ContactListMember[]
+  campaignRecipients CampaignRecipient[]
+
+  @@map("contacts")
+}
+
+model ContactListMember {
+  id          String   @id @default(cuid())
+  contactListId String
+  contactList ContactList @relation(fields: [contactListId], references: [id], onDelete: Cascade)
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([contactListId, contactId])
+  @@map("contact_list_members")
+}
+
+// ============================================
+// Outreach Models (Campaigns, Templates, Email)
+// ============================================
+
+model Campaign {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  contactListId String?
+  contactList ContactList? @relation("ContactListCampaigns", fields: [contactListId], references: [id])
+  name        String
+  description String?
+  subject     String
+  message     String   // Email body with variable placeholders
+  status      String   @default("draft") // draft, scheduled, sending, sent, paused
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  recipients  CampaignRecipient[]
+  attachments CampaignAttachment[]
+
+  @@map("campaigns")
+}
+
+model CampaignRecipient {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId   String
+  contact     Contact  @relation(fields: [contactId], references: [id])
+  email       String   // Snapshot of email at send time
+  status      String   @default("pending") // pending, sent, delivered, opened, clicked, replied, bounced
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  repliedAt   DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("campaign_recipients")
+}
+
+model CampaignAttachment {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  fileName    String
+  fileUrl     String
+  fileSize    Int?
+  mimeType    String?
+  createdAt   DateTime @default(now())
+
+  @@map("campaign_attachments")
+}
+
+model Template {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  name        String
+  subject     String
+  body        String   // Email body template with variables
+  category    String?  // Outreach, Follow-up, Introduction, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("templates")
+}
+
+// ============================================
+// Persona Models
+// ============================================
+
+model Persona {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  name        String
+  title       String?
+  age         String?
+  location    String?
+  companySize String?
+  priorities  String?
+  goals       String?
+  channels    String?
+  budget      String?
+  decisionProcess String?
+  objections  String?
+  pitchStrategy String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("personas")
+}
+
+// ============================================
+// Proposal Models
+// ============================================
+
+model Proposal {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  title       String
+  description String?
+  clientName  String?
+  clientEmail String?
+  status      String   @default("draft") // draft, sent, approved, rejected, closed
+  value       Float?
+  currency    String   @default("USD")
+  content     String?  // JSON or rich text content
+  milestones  String?  // JSON array of milestones
+  deliverables String? // JSON array of deliverables
+  compensation String? // JSON compensation structure
+  feedback    String?
+  sentAt      DateTime?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("proposals")
+}
+
+// ============================================
+// Event Models
+// ============================================
+
+model Event {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  name        String
+  description String?
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  eventType   String?  // Conference, Webinar, Meetup, etc.
+  url         String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("events")
+}
+
+// ============================================
+// Meeting Models
+// ============================================
+
+model Meeting {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  title       String
+  description String?
+  attendeeName String?
+  attendeeEmail String?
+  scheduledAt DateTime?
+  duration    Int?     // Duration in minutes
+  meetingType String?  // Call, Video, In-Person
+  location    String?  // URL for video calls, address for in-person
+  status      String   @default("scheduled") // scheduled, completed, cancelled, no-show
+  notes       String?
+  feedback    String?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("meetings")
+}
+
+// ============================================
+// Ads Models
+// ============================================
+
+model AdCampaign {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  name        String
+  platform    String   // Google, Facebook, LinkedIn, etc.
+  status      String   @default("draft") // draft, active, paused, completed
+  budget      Float?
+  startDate   DateTime?
+  endDate     DateTime?
+  targetAudience String?
+  adCopy      String?
+  metrics     String?  // JSON object with metrics (clicks, impressions, conversions, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("ad_campaigns")
 }
