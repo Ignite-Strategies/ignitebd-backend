@@ -14,13 +14,11 @@ This document defines the universal navigation flow for all Ignite stacks. It ha
          │
          ├─ Firebase Auth? ── NO ──→ /signup
          │
-         └─ YES ──→ /hydration-home
+         └─ YES ──→ /signup or /signin → /profilesetup
                         │
-                        ├─ Profile Complete? ── NO ──→ /profilesetup
+                        ├─ Company Exists? ── NO ──→ /companyprofile → /growth-dashboard
                         │
-                        ├─ Company Complete? ── NO ──→ /companyprofile
-                        │
-                        └─ YES ──→ /growth-dashboard (or universal home)
+                        └─ YES ──→ /growth-dashboard
 ```
 
 ---
@@ -211,19 +209,16 @@ req.headers.authorization = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 
 ---
 
-### 2. **Hydration Home** (`/hydration-home`) 🚧 TODO
-- **Purpose**: Central routing hub after authentication
+### 2. **Profile Setup** (`/profilesetup`)
+- **Purpose**: Profile completion and routing hub (handles both new and returning users)
 - **Logic**:
-  1. Call `/api/user/hydrate` to get full user data
-  2. Check completion flags:
-     - `profileComplete` (has firstName, lastName, etc.)
-     - `companyComplete` (has companyId)
-  3. Route based on completion:
-     - Profile incomplete → `/profilesetup`
-     - Company incomplete → `/companyprofile`
-     - Both complete → `/growth-dashboard` (or universal home)
-- **API**: `GET /api/user/hydrate`
-- **Status**: To be created
+  1. Collects/updates: `firstName`, `lastName`, `email`, `phone`, `role`, `goals`
+  2. Updates Owner profile via `PUT /api/adminUserAuth/:adminId`
+  3. Checks company completion:
+     - If company exists → Navigate to `/growth-dashboard`
+     - If no company → Navigate to `/companyprofile`
+- **API**: `PUT /api/adminUserAuth/:adminId`
+- **Next Step**: `/companyprofile` (if no company) or `/growth-dashboard` (if company exists)
 
 ---
 
@@ -233,9 +228,9 @@ req.headers.authorization = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
   1. Firebase authentication (email/password or OAuth)
   2. Call `/api/user/create` to create/find Owner
   3. Store `adminId` in localStorage
-  4. **Always** navigate to `/profilesetup` (default flow)
+  4. Navigate to `/profilesetup` (profile setup handles routing)
 - **API**: `POST /api/user/create`
-- **Next Step**: `/profilesetup`
+- **Next Step**: `/profilesetup` → checks company, routes to `/companyprofile` or `/growth-dashboard`
 
 ---
 
@@ -245,9 +240,9 @@ req.headers.authorization = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
   1. Firebase authentication
   2. Call `/api/user/create` to find existing Owner
   3. Store `adminId` in localStorage
-  4. Navigate to `/hydration-home` (checks completion, routes accordingly)
+  4. Navigate to `/profilesetup` (profile setup checks completion and routes accordingly)
 - **API**: `POST /api/user/create`
-- **Next Step**: `/hydration-home` → routes to universal home or onboarding
+- **Next Step**: `/profilesetup` → checks profile/company completion, routes to appropriate page
 
 ---
 
@@ -323,13 +318,13 @@ req.headers.authorization = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 
 ## Implementation Checklist
 
-- [ ] **Fix `Splash.jsx`**: Remove API call, use `onAuthStateChanged` listener
-- [ ] **Create `HydrationHome.jsx` component**: Central routing hub
-- [ ] **Fix `/api/user/hydrate`**: Use `prisma.owner` instead of `prisma.user`, add completion flags
-- [ ] **Update `Signup.jsx`**: Always route to `/profilesetup` after creating Owner
-- [ ] **Update `Signin.jsx`**: Route to `/hydration-home` after auth
-- [ ] **Update `GrowthDashboard.jsx`**: Check hydration before loading data
-- [ ] **Add route** for `/hydration-home` in `App.jsx`
+- [x] **Fix `Splash.jsx`**: Remove API call, use `onAuthStateChanged` listener ✅
+- [ ] **Update `Profilesetup.jsx`**: Add company check logic - route to `/companyprofile` or `/growth-dashboard`
+- [ ] **Fix `/api/user/hydrate`**: Use `prisma.owner` instead of `prisma.user`
+- [x] **Update `Signup.jsx`**: Always route to `/profilesetup` after creating Owner ✅
+- [x] **Update `Signin.jsx`**: Route to `/profilesetup` after auth ✅
+- [ ] **Update `GrowthDashboard.jsx`**: Check hydration before loading data (if needed)
+- [x] **Update `App.jsx`**: Splash as entry point, routes organized ✅
 
 ---
 
@@ -338,31 +333,33 @@ req.headers.authorization = "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 ### New User Journey
 1. Visit `/splash` → No auth → `/signup`
 2. Signup → Create Owner → `/profilesetup`
-3. Profile Setup → `/companyprofile`
-4. Company Profile → `/growth-dashboard`
+3. Profile Setup → Checks company (none exists) → `/companyprofile`
+4. Company Profile → Creates company → `/growth-dashboard`
 
 ### Returning User Journey
-1. Visit `/splash` → Auth exists → `/hydration-home`
-2. Hydration → Profile & Company complete → `/growth-dashboard`
+1. Visit `/splash` → Auth exists → `/signin` → `/profilesetup`
+2. Profile Setup → Checks company (exists) → `/growth-dashboard`
 
-### Incomplete Profile Journey
-1. Visit `/splash` → Auth exists → `/hydration-home`
-2. Hydration → Profile incomplete → `/profilesetup`
-3. Complete profile → `/growth-dashboard`
+### Incomplete Company Journey
+1. Visit `/splash` → Auth exists → `/signin` → `/profilesetup`
+2. Profile Setup → Checks company (none exists) → `/companyprofile`
+3. Company Profile → Creates company → `/growth-dashboard`
 
 ### Sign In Journey
-1. Visit `/signin` → Authenticate → `/hydration-home`
-2. Hydration → Routes to appropriate page based on completion
+1. Visit `/signin` → Authenticate → `/profilesetup`
+2. Profile Setup → Checks company → Routes to `/companyprofile` or `/growth-dashboard`
 
 ---
 
 ## Onboarding Flow (Included in Universal Navigation)
 
-### Profile Setup (`/profilesetup`)
-- **Purpose**: Collect Owner profile details
+### Profile Setup (`/profilesetup`) - Central Routing Hub
+- **Purpose**: Collect Owner profile details AND route based on company completion
 - **Fields**: `firstName`, `lastName`, `email`, `phone`, `role`, `goals`
 - **API**: `PUT /api/adminUserAuth/:adminId`
-- **Next Step**: `/companyprofile` (create new company)
+- **Routing Logic**:
+  - If company exists → `/growth-dashboard`
+  - If no company → `/companyprofile`
 
 ### Company Profile (`/companyprofile`)
 - **Purpose**: Create new company
