@@ -1,12 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import cookieSession from 'cookie-session';
-import { createServer } from 'http';
 import prisma from './db.js';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
-import { initializeSocket } from './src/socket.js';
 
 // New organized routes (following architecture pattern)
 import userCreateRoute from './routes/Owner/userCreateRoute.js';
@@ -136,18 +134,10 @@ app.get('/db-test', async (req, res) => {
   }
 });
 
-// Create HTTP server (required for Socket.io)
-const httpServer = createServer(app);
-
-// Initialize Socket.io
-const io = initializeSocket(httpServer);
-console.log('✅ Socket.io initialized');
-
 // Start server - Prisma client is generated during build, schema is pushed during build
 // Database connection will be established on first use
-httpServer.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`🔥 Ignite Activation API running on port ${PORT}`);
-  console.log(`🔌 Socket.io server ready for WebSocket connections`);
   
   // Test database connection (non-blocking)
   prisma.$connect()
@@ -158,6 +148,3 @@ httpServer.listen(PORT, () => {
       console.warn('⚠️ Database connection not immediately available (will retry on first query):', error.message);
     });
 });
-
-// Export for potential use elsewhere
-export { io };
