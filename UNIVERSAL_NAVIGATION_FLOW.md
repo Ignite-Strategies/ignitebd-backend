@@ -14,7 +14,7 @@ This document defines the universal navigation flow for all Ignite stacks. It ha
          │
          ├─ Firebase Auth? ── NO ──→ /signup
          │
-         └─ YES ──→ /signup or /signin → /profilesetup
+         └─ YES ──→ /signin → /profilesetup
                         │
                         ├─ Company Exists? ── NO ──→ /companyprofile → /growth-dashboard
                         │
@@ -30,8 +30,8 @@ This document defines the universal navigation flow for all Ignite stacks. It ha
 - **Logic**:
   1. Display branding/logo (800ms)
   2. Check Firebase auth state in browser localStorage (Firebase SDK manages this)
-  3. If token exists → Navigate to `/hydration-home`
-  4. If no token → Navigate to `/signup`
+  3. If token exists → Navigate to `/signin` (routes to `/profilesetup`)
+  4. If no token → Navigate to `/signup` (routes to `/profilesetup`)
 - **Components**: Logo, branding message
 - **CRITICAL**: Splash ONLY checks localStorage - that's IT. No API calls, no complex logic, no hydration checks.
 
