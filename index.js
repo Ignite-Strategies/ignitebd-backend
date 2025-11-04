@@ -1,10 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import cookieSession from 'cookie-session';
+import { createServer } from 'http';
 import prisma from './db.js';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import { initializeSocket } from './src/socket.js';
 
 // New organized routes (following architecture pattern)
 import userCreateRoute from './routes/Owner/userCreateRoute.js';
@@ -30,10 +32,35 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // --- Profile Picture Upload Setup ---
-// Make sure the persistent upload directory exists
-const uploadDir = '/data/uploads';
+// Use a writable directory (Render allows /tmp or relative paths)
+let uploadDir = process.env.UPLOAD_DIR || './uploads';
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log('✅ Upload directory created:', uploadDir);
+  } catch (error) {
+    console.error('⚠️ Could not create upload directory:', error.message);
+    // Fallback to /tmp if available
+    const tmpDir = '/tmp/uploads';
+    if (fs.existsSync('/tmp')) {
+      try {
+        if (!fs.existsSync(tmpDir)) {
+          fs.mkdirSync(tmpDir, { recursive: true });
+        }
+        uploadDir = tmpDir;
+        console.log('✅ Using fallback upload directory:', tmpDir);
+      } catch (err) {
+        console.error('❌ Could not create fallback directory:', err.message);
+        // Last resort: use current directory
+        uploadDir = './uploads';
+        console.log('⚠️ Using current directory as fallback');
+      }
+    } else {
+      // Use current directory as fallback
+      uploadDir = './uploads';
+      console.log('⚠️ Using current directory as fallback');
+    }
+  }
 }
 
 // Configure Multer for storing files on Render's persistent disk
@@ -46,7 +73,12 @@ const upload = multer({ storage });
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://ignitebd-frontend.vercel.app', 'https://ignitestrategies.co'], // Allow frontend origin
+  origin: [
+    'http://localhost:5173', 
+    'https://ignitebd-frontend.vercel.app', 
+    'https://ignitestrategies.co',
+    'https://growth.ignitestrategies.co'
+  ], // Allow frontend origin
   credentials: true // Allow cookies to be sent
 }));
 app.use(express.json());
@@ -104,10 +136,18 @@ app.get('/db-test', async (req, res) => {
   }
 });
 
+// Create HTTP server (required for Socket.io)
+const httpServer = createServer(app);
+
+// Initialize Socket.io
+const io = initializeSocket(httpServer);
+console.log('✅ Socket.io initialized');
+
 // Start server - Prisma client is generated during build, schema is pushed during build
 // Database connection will be established on first use
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🔥 Ignite Activation API running on port ${PORT}`);
+  console.log(`🔌 Socket.io server ready for WebSocket connections`);
   
   // Test database connection (non-blocking)
   prisma.$connect()
@@ -118,3 +158,6 @@ app.listen(PORT, () => {
       console.warn('⚠️ Database connection not immediately available (will retry on first query):', error.message);
     });
 });
+
+// Export for potential use elsewhere
+export { io };
