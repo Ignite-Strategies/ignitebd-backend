@@ -5,6 +5,12 @@ Standardized patterns for scaffolding backend routes, folders, and features in `
 
 **Key Decision**: **Use `companyId` for multi-tenancy** - The schema already uses `companyId` throughout all models. This is the established pattern.
 
+**Schema Updates**:
+- `Company.ownerId` - Original creator/owner (immutable)
+- `Company.adminId` - Delegated admin (can be changed)
+- `Contact` - Universal person container
+- `Prospect.contactId` & `Client.contactId` - Optional references to Contact (avoids complex hydration)
+
 ---
 
 ## Core Backend Structure
@@ -18,8 +24,7 @@ ignitebd-backend/
 ├── prisma/
 │   └── schema.prisma              # Database schema (source of truth for models)
 ├── middleware/
-│   ├── authMiddleware.js          # Firebase auth verification
-│   └── authRoute.js               # Auth routes
+│   └── firebaseMiddleware.js      # Firebase auth verification
 ├── services/                      # Business logic & calculations
 ├── routes/                        # All API routes organized by feature
 │   ├── Admin/                     # Admin-only routes (if needed)
@@ -121,7 +126,7 @@ routes/
 
 import express from 'express';
 import prisma from '../../db.js';
-import { verifyFirebaseToken } from '../../middleware/authMiddleware.js';
+import { verifyFirebaseToken } from '../../middleware/firebaseMiddleware.js';
 
 const router = express.Router();
 
@@ -307,7 +312,7 @@ DELETE /api/contact-lists/:listId/contacts/:contactId → Remove from list
 
 **For User-Facing Routes**:
 ```javascript
-import { verifyFirebaseToken } from '../../middleware/authMiddleware.js';
+import { verifyFirebaseToken } from '../../middleware/firebaseMiddleware.js';
 
 router.get('/protected-route', verifyFirebaseToken, async (req, res) => {
   const firebaseId = req.user?.uid; // Extracted by middleware

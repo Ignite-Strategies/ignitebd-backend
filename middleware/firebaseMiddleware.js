@@ -103,3 +103,4 @@ export const createCustomToken = async (uid, additionalClaims = {}) => {
 };
 
 export default admin;
+

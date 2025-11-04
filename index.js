@@ -4,7 +4,8 @@ import cookieSession from 'cookie-session';
 import prisma from './db.js';
 
 // New organized routes (following architecture pattern)
-import authRoute from './routes/Auth/authRoute.js';
+import userCreateRoute from './routes/User/userCreateRoute.js';
+import userHydrateRoute from './routes/User/userHydrateRoute.js';
 import companyRoute from './routes/Company/companyRoute.js';
 
 // Legacy routes (to be refactored into organized structure)
@@ -41,7 +42,8 @@ app.use(cookieSession({
 
 // Routes - Organized by feature (following IgniteBD_ARCHITECTURE.md)
 // NEW organized routes (matching schema)
-app.use('/auth', authRoute);                    // Auth routes (Firebase auth)
+app.use('/api/user', userCreateRoute);          // User create route (Pattern A)
+app.use('/api/user', userHydrateRoute);         // User hydrate route (Pattern B) - includes /me, /companies
 app.use('/company', companyRoute);              // Company CRUD routes
 
 // Legacy routes (to be refactored into organized folders)

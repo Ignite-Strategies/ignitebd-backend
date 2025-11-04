@@ -81,7 +81,7 @@ router.get('/:companyId', async (req, res) => {
       where: { id: companyId },
       include: {
         admin: true,
-        customers: true,
+        clients: true,
         prospects: true
       }
     });

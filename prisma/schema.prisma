@@ -19,10 +19,11 @@ model User {
   updatedAt   DateTime @updatedAt
 
   // Relationships
-  adminOf     Company[] @relation("AdminOf")
-  staffOf     Company[] @relation("StaffOf")
+  ownedCompanies Company[] @relation("OwnerOf")  // Companies this user owns
+  adminOf     Company[] @relation("AdminOf")      // Companies this user administers (delegated)
+  staffOf     Company[] @relation("StaffOf")       // Companies this user is staff of
   prospects   Prospect[]
-  customers   Customer[]
+  clients     Client[]
   pipelineEntries BDPipelineEntry[] @relation("AssignedPipelineEntries")
 
   @@map("users")
@@ -36,18 +37,22 @@ model Company {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relationships
-  adminId     String
+  // Ownership & Administration
+  ownerId     String   // Original creator/owner of the company
+  owner       User     @relation("OwnerOf", fields: [ownerId], references: [id])
+  adminId     String   // Delegated admin (can be different from owner)
   admin       User     @relation("AdminOf", fields: [adminId], references: [id])
   staff       User[]   @relation("StaffOf")
+  
+  // CRM Data (all contacts, prospects, clients)
   prospects   Prospect[]
-  customers   Customer[]
+  clients     Client[]
+  contacts    Contact[]  // Universal person container - includes prospects, clients, and other contacts
   pipelineEntries BDPipelineEntry[]
   revenueStacks RevenueStack[]
   humanCapitalStacks HumanCapitalStack[]
   targetAcquisitionStacks TargetAcquisitionStack[]
   contactLists ContactList[]
-  contacts    Contact[]
   campaigns   Campaign[]
   templates   Template[]
   personas    Persona[]
@@ -59,20 +64,22 @@ model Company {
   @@map("companies")
 }
 
-model Customer {
+model Client {
   id          String   @id @default(cuid())
   name        String
   email       String?
   phone       String?
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
+  contactId   String?  // Optional reference to universal Contact record
+  contact     Contact? @relation(fields: [contactId], references: [id])
   assignedTo  String?
-  assignedUser User?   @relation(fields: [assignedTo], references: [id])
+  assignedUser User?   @relation(fields: [assignedTo], references: [id])        
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  pipelineEntries BDPipelineEntry[] @relation("CustomerPipelineEntries")
+  pipelineEntries BDPipelineEntry[] @relation("ClientPipelineEntries")        
 
-  @@map("customers")
+  @@map("clients")
 }
 
 model Prospect {
@@ -82,6 +89,8 @@ model Prospect {
   phone       String?
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
+  contactId   String?  // Optional reference to universal Contact record
+  contact     Contact? @relation(fields: [contactId], references: [id])
   assignedTo  String?
   assignedUser User?   @relation(fields: [assignedTo], references: [id])
   createdAt   DateTime @default(now())
@@ -95,8 +104,8 @@ model BDPipelineEntry {
   id          String   @id @default(cuid())
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
-  customerId  String?  // Optional - if they're already a customer
-  customer    Customer? @relation("CustomerPipelineEntries", fields: [customerId], references: [id])
+  clientId    String?  // Optional - if they're already a client
+  client      Client? @relation("ClientPipelineEntries", fields: [clientId], references: [id])
   prospectId  String?  // Optional - if they're still a prospect
   prospect    Prospect? @relation("ProspectPipelineEntries", fields: [prospectId], references: [id])
   stage       String   // Pipeline stage (e.g., "aware", "interested", "qualified", "proposal", "closed_won", "closed_lost")
@@ -270,13 +279,16 @@ model Contact {
   companyName String?
   title       String?
   notes       String?
-  tags        String[] // Array of tags
+  tags        String[] // Array of tags (e.g., ["prospect", "client", "vendor", "partner"])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   // Relationships
   listMemberships ContactListMember[]
   campaignRecipients CampaignRecipient[]
+  // Reverse relations - a Contact can be linked to a Prospect or Client
+  prospects  Prospect[]
+  clients    Client[]
 
   @@map("contacts")
 }

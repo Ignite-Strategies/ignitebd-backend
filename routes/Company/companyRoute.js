@@ -3,7 +3,7 @@
 // All operations require companyId and proper authorization
 
 import express from 'express';
-import { verifyFirebaseToken } from '../../middleware/authMiddleware.js';
+import { verifyFirebaseToken } from '../../middleware/firebaseMiddleware.js';
 import prisma from '../../db.js';
 
 const router = express.Router();
@@ -11,40 +11,56 @@ const router = express.Router();
 /**
  * POST /company
  * Create new company
- * Body: { name: string, address?: string, annualRev?: number, adminId: string }
+ * Body: { name: string, address?: string, annualRev?: number, adminId?: string }
  * Headers: Authorization: Bearer <firebase-token>
+ * 
+ * Note: If adminId is not provided, the authenticated user becomes both owner and admin.
+ * If adminId is provided, it must match the authenticated user (owner and admin are the same).
+ * Later, admin can be delegated separately from owner.
  */
 router.post('/', verifyFirebaseToken, async (req, res) => {
   try {
     const { uid } = req.user;
     const { name, address, annualRev, adminId } = req.body;
 
-    if (!name || !adminId) {
+    if (!name) {
       return res.status(400).json({ 
-        error: 'Company name and adminId are required' 
+        error: 'Company name is required' 
       });
     }
 
-    // Verify the adminId matches the authenticated user
+    // Get the authenticated user
     const user = await prisma.user.findUnique({
       where: { firebaseId: uid }
     });
 
-    if (!user || user.id !== adminId) {
-      return res.status(403).json({ 
-        error: 'You can only create companies for yourself' 
+    if (!user) {
+      return res.status(404).json({ 
+        error: 'User not found' 
       });
     }
 
-    // Create company
+    // If adminId is provided, verify it matches the authenticated user
+    // Otherwise, use authenticated user as both owner and admin
+    const finalAdminId = adminId || user.id;
+    
+    if (adminId && user.id !== adminId) {
+      return res.status(403).json({ 
+        error: 'You can only create companies where you are the admin' 
+      });
+    }
+
+    // Create company - owner is always the authenticated user, admin can be delegated
     const company = await prisma.company.create({
       data: {
         name,
         address,
         annualRev,
-        adminId
+        ownerId: user.id,  // Owner is always the creator
+        adminId: finalAdminId  // Admin defaults to owner, but can be delegated later
       },
       include: {
+        owner: true,
         admin: true,
         staff: true
       }
@@ -81,19 +97,21 @@ router.get('/:companyId', verifyFirebaseToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if user is admin or staff of this company
+    // Check if user is owner, admin, or staff of this company
     const company = await prisma.company.findFirst({
       where: {
         id: companyId,
         OR: [
+          { ownerId: user.id },
           { adminId: user.id },
           { staff: { some: { id: user.id } } }
         ]
       },
       include: {
+        owner: true,
         admin: true,
         staff: true,
-        customers: true,
+        clients: true,
         prospects: true,
         pipelineEntries: true
       }
@@ -135,17 +153,20 @@ router.put('/:companyId', verifyFirebaseToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if user is admin of this company
+    // Check if user is owner or admin of this company
     const existingCompany = await prisma.company.findFirst({
       where: {
         id: companyId,
-        adminId: user.id
+        OR: [
+          { ownerId: user.id },
+          { adminId: user.id }
+        ]
       }
     });
 
     if (!existingCompany) {
       return res.status(403).json({ 
-        error: 'Only company admin can update company details' 
+        error: 'Only company owner or admin can update company details' 
       });
     }
 
@@ -158,6 +179,7 @@ router.put('/:companyId', verifyFirebaseToken, async (req, res) => {
         annualRev
       },
       include: {
+        owner: true,
         admin: true,
         staff: true
       }
@@ -191,7 +213,7 @@ router.post('/:companyId/add-staff', verifyFirebaseToken, async (req, res) => {
       return res.status(400).json({ error: 'userId is required' });
     }
 
-    // Verify user is admin of this company
+    // Verify user is owner or admin of this company
     const user = await prisma.user.findUnique({
       where: { firebaseId: uid }
     });
@@ -203,13 +225,16 @@ router.post('/:companyId/add-staff', verifyFirebaseToken, async (req, res) => {
     const company = await prisma.company.findFirst({
       where: {
         id: companyId,
-        adminId: user.id
+        OR: [
+          { ownerId: user.id },
+          { adminId: user.id }
+        ]
       }
     });
 
     if (!company) {
       return res.status(403).json({ 
-        error: 'Only company admin can add staff members' 
+        error: 'Only company owner or admin can add staff members' 
       });
     }
 
@@ -231,6 +256,7 @@ router.post('/:companyId/add-staff', verifyFirebaseToken, async (req, res) => {
         }
       },
       include: {
+        owner: true,
         admin: true,
         staff: true
       }
@@ -258,7 +284,7 @@ router.delete('/:companyId/remove-staff/:userId', verifyFirebaseToken, async (re
     const { uid } = req.user;
     const { companyId, userId } = req.params;
 
-    // Verify user is admin of this company
+    // Verify user is owner or admin of this company
     const user = await prisma.user.findUnique({
       where: { firebaseId: uid }
     });
@@ -270,13 +296,16 @@ router.delete('/:companyId/remove-staff/:userId', verifyFirebaseToken, async (re
     const company = await prisma.company.findFirst({
       where: {
         id: companyId,
-        adminId: user.id
+        OR: [
+          { ownerId: user.id },
+          { adminId: user.id }
+        ]
       }
     });
 
     if (!company) {
       return res.status(403).json({ 
-        error: 'Only company admin can remove staff members' 
+        error: 'Only company owner or admin can remove staff members' 
       });
     }
 
@@ -289,6 +318,7 @@ router.delete('/:companyId/remove-staff/:userId', verifyFirebaseToken, async (re
         }
       },
       include: {
+        owner: true,
         admin: true,
         staff: true
       }
@@ -303,6 +333,78 @@ router.delete('/:companyId/remove-staff/:userId', verifyFirebaseToken, async (re
   } catch (error) {
     console.error('❌ Failed to remove staff:', error);
     res.status(500).json({ error: 'Failed to remove staff member' });
+  }
+});
+
+/**
+ * PUT /company/:companyId/delegate-admin
+ * Delegate admin rights to another user (owner only)
+ * Body: { adminId: string }
+ * Headers: Authorization: Bearer <firebase-token>
+ */
+router.put('/:companyId/delegate-admin', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { uid } = req.user;
+    const { companyId } = req.params;
+    const { adminId } = req.body;
+
+    if (!adminId) {
+      return res.status(400).json({ error: 'adminId is required' });
+    }
+
+    // Verify user is owner of this company (only owner can delegate admin)
+    const user = await prisma.user.findUnique({
+      where: { firebaseId: uid }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const company = await prisma.company.findFirst({
+      where: {
+        id: companyId,
+        ownerId: user.id  // Only owner can delegate admin
+      }
+    });
+
+    if (!company) {
+      return res.status(403).json({ 
+        error: 'Only company owner can delegate admin rights' 
+      });
+    }
+
+    // Verify the new admin user exists
+    const newAdmin = await prisma.user.findUnique({
+      where: { id: adminId }
+    });
+
+    if (!newAdmin) {
+      return res.status(404).json({ error: 'New admin user not found' });
+    }
+
+    // Update admin
+    const updatedCompany = await prisma.company.update({
+      where: { id: companyId },
+      data: {
+        adminId: adminId
+      },
+      include: {
+        owner: true,
+        admin: true,
+        staff: true
+      }
+    });
+
+    console.log('✅ Admin delegated for company:', companyId);
+    res.json({
+      success: true,
+      data: updatedCompany
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to delegate admin:', error);
+    res.status(500).json({ error: 'Failed to delegate admin rights' });
   }
 });
 

@@ -12,7 +12,7 @@ router.get('/:companyId', async (req, res) => {
     const pipelineEntries = await prisma.bDPipelineEntry.findMany({
       where: { companyId },
       include: {
-        customer: true,
+        client: true,
         prospect: true,
         assignedUser: true
       }
@@ -47,21 +47,21 @@ router.get('/:companyId', async (req, res) => {
 // Create new pipeline entry
 router.post('/', async (req, res) => {
   try {
-    const { companyId, customerId, prospectId, stage, status, value, probability, notes, assignedTo } = req.body;
+    const { companyId, clientId, prospectId, stage, status, value, probability, notes, assignedTo } = req.body;
 
     if (!companyId || !stage) {
       return res.status(400).json({ error: 'Company ID and stage are required' });
     }
 
-    // Validate that either customerId or prospectId is provided, but not both
-    if ((!customerId && !prospectId) || (customerId && prospectId)) {
-      return res.status(400).json({ error: 'Either customerId or prospectId must be provided, but not both' });
+        // Validate that either clientId or prospectId is provided, but not both  
+    if ((!clientId && !prospectId) || (clientId && prospectId)) {
+      return res.status(400).json({ error: 'Either clientId or prospectId must be provided, but not both' });
     }
 
     const pipelineEntry = await prisma.bDPipelineEntry.create({
       data: {
         companyId,
-        customerId,
+        clientId,
         prospectId,
         stage,
         status: status || 'active',
@@ -71,7 +71,7 @@ router.post('/', async (req, res) => {
         assignedTo
       },
       include: {
-        customer: true,
+        client: true,
         prospect: true,
         assignedUser: true
       }
@@ -103,7 +103,7 @@ router.put('/:entryId', async (req, res) => {
         assignedTo
       },
       include: {
-        customer: true,
+        client: true,
         prospect: true,
         assignedUser: true
       }
@@ -153,7 +153,7 @@ router.put('/move/:entryId', async (req, res) => {
         status: newStatus || 'active'
       },
       include: {
-        customer: true,
+        client: true,
         prospect: true,
         assignedUser: true
       }
