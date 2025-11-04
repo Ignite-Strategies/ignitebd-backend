@@ -5,11 +5,23 @@ Standardized patterns for scaffolding backend routes, folders, and features in `
 
 **Key Decision**: **Use `companyId` for multi-tenancy** - The schema already uses `companyId` throughout all models. This is the established pattern.
 
-**Schema Updates**:
-- `Company.ownerId` - Original creator/owner (immutable)
-- `Company.adminId` - Delegated admin (can be changed)
-- `Contact` - Universal person container
+**Core Architecture**:
+- **`Company`** = Tied to `ownerId` - Owner owns the Company
+- **`companyId`** = Universal CRM container - All CRM data (Contact, Prospect, Client, etc.) is scoped to `companyId`, NOT to `ownerId`
+- **`Owner`** = The literal owner of the company managing the stack (has `firebaseId` for auth)
+- **`Company.ownerId`** = Super admin - Owner doesn't need to be assigned anything, they just ARE the owner. Only `ownerId` can change company-level settings (immutable, references Owner)
+- **`Company.adminId`** = Invited by `ownerId` - When owner invites others to platform, they become `adminId` (not `ownerId`). Once assigned, that Owner is relationally tied to `companyId` and can manage the CRM stack, but cannot change company settings
+
+**Schema Structure**:
+- `Owner` - Firebase-authenticated owners (can own/admin multiple companies)
+- `Company` - Owned by `ownerId`, but all CRM data lives in `companyId` stack
+- `Contact`, `Prospect`, `Client`, etc. - All scoped to `companyId` (NOT ownerId)
 - `Prospect.contactId` & `Client.contactId` - Optional references to Contact (avoids complex hydration)
+
+**Key Principle**: 
+- Company belongs to Owner (`ownerId`) - Owner is super admin, doesn't need assignment. Only `ownerId` can change company settings.
+- `ownerId` invites others to platform - they become `adminId` (not `ownerId`). Once assigned, that Owner is relationally tied to `companyId` and can manage the CRM stack, but cannot change company settings.
+- CRM stack lives in `companyId` - not shoved into `ownerId`!
 
 ---
 
@@ -44,7 +56,16 @@ ignitebd-backend/
 
 ## Multi-Tenancy: CompanyId Pattern
 
-**Decision**: All data is scoped to `companyId`. Every model that represents company-specific data must include `companyId`.
+**Decision**: 
+- `Company` is tied to `ownerId` - Owner owns the Company
+- All CRM data (Contact, Prospect, Client, Campaigns, etc.) is scoped to `companyId` - NOT to `ownerId`
+- Every model that represents CRM/company-specific data must include `companyId`
+
+**Key Principle**: 
+- Company belongs to Owner (`ownerId`) - Owner is super admin, doesn't need assignment. Only `ownerId` can change company settings.
+- `ownerId` invites others to platform - they become `adminId` (not `ownerId`). Once assigned, that Owner is relationally tied to `companyId` and can manage the CRM stack, but cannot change company settings.
+- CRM stack (contacts, prospects, clients, campaigns, etc.) lives in `companyId` - not shoved into `ownerId`!
+- Owner (super admin) can change company settings. Admin (invited) can manage CRM stack but not company settings.
 
 **Schema Pattern**:
 ```prisma
@@ -318,16 +339,18 @@ router.get('/protected-route', verifyFirebaseToken, async (req, res) => {
   const firebaseId = req.user?.uid; // Extracted by middleware
   const { companyId } = req.query;
   
-  // Verify user has access to this company
-  const user = await prisma.user.findUnique({
+  // Verify owner has access to this company (owner or admin)
+  const owner = await prisma.owner.findUnique({
     where: { firebaseId },
     include: {
+      ownedCompanies: { where: { id: companyId } },
       adminOf: { where: { id: companyId } },
       staffOf: { where: { id: companyId } }
     }
   });
   
-  if (!user.adminOf.length && !user.staffOf.length) {
+  // Owner must be owner, admin, or staff of this companyId
+  if (!owner.ownedCompanies.length && !owner.adminOf.length && !owner.staffOf.length) {
     return res.status(403).json({ error: 'Access denied' });
   }
 });
@@ -482,5 +505,7 @@ Based on frontend structure, here are the routes needed:
 
 **Last Updated**: January 2025  
 **Pattern Status**: ✅ Standardized and documented  
-**Multi-Tenancy**: ✅ Uses `companyId` throughout
+**Multi-Tenancy**: ✅ Uses `companyId` throughout (universal entity container)  
+**Owner Model**: ✅ `Owner` replaces `User` - literal owner managing the stack  
+**Admin Delegation**: ✅ `adminId` can be assigned by `ownerId`, tied to `companyId`
 

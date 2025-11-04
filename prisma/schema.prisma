@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Owner {
   id          String   @id @default(cuid())
   firebaseId  String   @unique
   name        String
@@ -19,39 +19,42 @@ model User {
   updatedAt   DateTime @updatedAt
 
   // Relationships
-  ownedCompanies Company[] @relation("OwnerOf")  // Companies this user owns
-  adminOf     Company[] @relation("AdminOf")      // Companies this user administers (delegated)
-  staffOf     Company[] @relation("StaffOf")       // Companies this user is staff of
+  ownedCompanies Company[] @relation("OwnerOf")  // Companies this owner owns (super admin)
+  managesCompanies Company[] @relation("ManagerOf")  // Companies this owner manages (delegated by owner)
+  staffOf     Company[] @relation("StaffOf")       // Companies this owner is staff of
   prospects   Prospect[]
   clients     Client[]
   pipelineEntries BDPipelineEntry[] @relation("AssignedPipelineEntries")
 
-  @@map("users")
+  @@map("owners")
 }
 
 model Company {
   id          String   @id @default(cuid())
-  name        String
-  address     String?
-  annualRev   Float?
+  companyName String
+  companyAddress String?
+  companyIndustry String?  // Self-reported industry
+  companyAnnualRev Float? // Self-reported annual revenue (stored as number, can be converted from range)
+  yearsInBusiness Int? // Self-reported years in business
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Ownership & Administration
-  ownerId     String   // Original creator/owner of the company
-  owner       User     @relation("OwnerOf", fields: [ownerId], references: [id])
-  adminId     String   // Delegated admin (can be different from owner)
-  admin       User     @relation("AdminOf", fields: [adminId], references: [id])
-  staff       User[]   @relation("StaffOf")
+  // Ownership & Management
+  ownerId     String   // Original creator/owner of the company (super admin)
+  owner       Owner     @relation("OwnerOf", fields: [ownerId], references: [id])
+  managerId   String?  // Manager assigned by owner - can manage CRM stack but not company settings
+  manager     Owner?    @relation("ManagerOf", fields: [managerId], references: [id])
+  staff       Owner[]   @relation("StaffOf")
   
   // CRM Data (all contacts, prospects, clients)
   prospects   Prospect[]
   clients     Client[]
   contacts    Contact[]  // Universal person container - includes prospects, clients, and other contacts
   pipelineEntries BDPipelineEntry[]
-  revenueStacks RevenueStack[]
-  humanCapitalStacks HumanCapitalStack[]
-  targetAcquisitionStacks TargetAcquisitionStack[]
+  // TODO: Commented out stacks - will be revenuegen or similar later
+  // revenueStacks RevenueStack[]
+  // humanCapitalStacks HumanCapitalStack[]
+  // targetAcquisitionStacks TargetAcquisitionStack[]
   contactLists ContactList[]
   campaigns   Campaign[]
   templates   Template[]
@@ -73,8 +76,8 @@ model Client {
   company     Company  @relation(fields: [companyId], references: [id])
   contactId   String?  // Optional reference to universal Contact record
   contact     Contact? @relation(fields: [contactId], references: [id])
-  assignedTo  String?
-  assignedUser User?   @relation(fields: [assignedTo], references: [id])        
+  assignedOwnerId  String?
+  assignedOwner Owner?   @relation(fields: [assignedOwnerId], references: [id])        
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   pipelineEntries BDPipelineEntry[] @relation("ClientPipelineEntries")        
@@ -91,8 +94,8 @@ model Prospect {
   company     Company  @relation(fields: [companyId], references: [id])
   contactId   String?  // Optional reference to universal Contact record
   contact     Contact? @relation(fields: [contactId], references: [id])
-  assignedTo  String?
-  assignedUser User?   @relation(fields: [assignedTo], references: [id])
+  assignedOwnerId  String?
+  assignedOwner Owner?   @relation(fields: [assignedOwnerId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   pipelineEntries BDPipelineEntry[] @relation("ProspectPipelineEntries")
@@ -113,8 +116,8 @@ model BDPipelineEntry {
   value       Float?   // Deal value
   probability Float?   // Probability of closing (0-100)
   notes       String?  // Additional notes
-  assignedTo  String?
-  assignedUser User?   @relation("AssignedPipelineEntries", fields: [assignedTo], references: [id])
+  assignedOwnerId  String?
+  assignedOwner Owner?   @relation("AssignedPipelineEntries", fields: [assignedOwnerId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -161,91 +164,92 @@ model PlatformProspect {
   @@map("platform_prospects")
 }
 
-model RevenueStack {
-  id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
-  
-  // Product Definition
-  productName String
-  
-  // Unit Economics
-  avgGrossPerUnit Float
-  avgOrdersPerMonthPerCustomer Float
-  
-  // Volume Metrics
-  totalCustomers Int
-  
-  // Calculated Fields
-  totalUnitsPerMonth Float
-  monthlyRevenue Float
-  annualRevenue Float
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// TODO: Commented out stacks - will be revenuegen or similar later
+// model RevenueStack {
+//   id          String   @id @default(cuid())
+//   companyId   String
+//   company     Company  @relation(fields: [companyId], references: [id])
+//   
+//   // Product Definition
+//   productName String
+//   
+//   // Unit Economics
+//   avgGrossPerUnit Float
+//   avgOrdersPerMonthPerCustomer Float
+//   
+//   // Volume Metrics
+//   totalCustomers Int
+//   
+//   // Calculated Fields
+//   totalUnitsPerMonth Float
+//   monthlyRevenue Float
+//   annualRevenue Float
+//   
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//
+//   @@map("revenue_stacks")
+// }
 
-  @@map("revenue_stacks")
-}
+// model HumanCapitalStack {
+//   id          String   @id @default(cuid())
+//   companyId   String
+//   company     Company  @relation(fields: [companyId], references: [id])
+//   
+//   // Team Structure
+//   totalTeamMembers Int
+//   avgHoursPerWeek Float
+//   founderHoursPerWeek Float?
+//   
+//   // Production Metrics
+//   hoursPerUnit Float
+//   totalUnitsPerMonth Int
+//   
+//   // Optional Advanced
+//   contractorHours Float?
+//   
+//   // Calculated Fields
+//   totalNeededHours Float
+//   teamCapacity Float
+//   totalCapacity Float
+//   utilization Float
+//   
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//
+//   @@map("human_capital_stacks")
+// }
 
-model HumanCapitalStack {
-  id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
-  
-  // Team Structure
-  totalTeamMembers Int
-  avgHoursPerWeek Float
-  founderHoursPerWeek Float?
-  
-  // Production Metrics
-  hoursPerUnit Float
-  totalUnitsPerMonth Int
-  
-  // Optional Advanced
-  contractorHours Float?
-  
-  // Calculated Fields
-  totalNeededHours Float
-  teamCapacity Float
-  totalCapacity Float
-  utilization Float
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("human_capital_stacks")
-}
-
-model TargetAcquisitionStack {
-  id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
-  
-  // Baseline Revenue
-  previousRevenue Float
-  currentMonthlyRevenue Float
-  
-  // Target Definition
-  targetRevenue Float
-  timeHorizon Int // months
-  
-  // Revenue Delta
-  increaseNeeded Float
-  growthPercent Float
-  
-  // Operational Targets (from Revenue Stack)
-  avgUnitValue Float
-  avgUnitsPerCustomer Float
-  
-  // Calculated Fields
-  newUnitsNeeded Float
-  newCustomersNeeded Float
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("target_acquisition_stacks")
-}
+// model TargetAcquisitionStack {
+//   id          String   @id @default(cuid())
+//   companyId   String
+//   company     Company  @relation(fields: [companyId], references: [id])
+//   
+//   // Baseline Revenue
+//   previousRevenue Float
+//   currentMonthlyRevenue Float
+//   
+//   // Target Definition
+//   targetRevenue Float
+//   timeHorizon Int // months
+//   
+//   // Revenue Delta
+//   increaseNeeded Float
+//   growthPercent Float
+//   
+//   // Operational Targets (from Revenue Stack)
+//   avgUnitValue Float
+//   avgUnitsPerCustomer Float
+//   
+//   // Calculated Fields
+//   newUnitsNeeded Float
+//   newCustomersNeeded Float
+//   
+//   createdAt   DateTime @default(now())
+//   updatedAt   DateTime @updatedAt
+//
+//   @@map("target_acquisition_stacks")
+// }
 
 // ============================================
 // Contact Management Models
