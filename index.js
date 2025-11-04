@@ -4,8 +4,8 @@ import cookieSession from 'cookie-session';
 import prisma from './db.js';
 
 // New organized routes (following architecture pattern)
-import userCreateRoute from './routes/User/userCreateRoute.js';
-import userHydrateRoute from './routes/User/userHydrateRoute.js';
+import userCreateRoute from './routes/Owner/userCreateRoute.js';
+import userHydrateRoute from './routes/Owner/userHydrateRoute.js';
 import companyRoute from './routes/Company/companyRoute.js';
 
 // Legacy routes (to be refactored into organized structure)
