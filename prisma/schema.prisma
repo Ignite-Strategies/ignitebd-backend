@@ -15,16 +15,15 @@ model Owner {
   firebaseId  String   @unique
   name        String
   email       String   @unique
+  photoURL    String?  // Profile picture URL (from Firebase)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relationships
+  // Company relationships only (basic personhood)
+  // Owner sees everything scoped to companyId - all CRM data is company-scoped
   ownedCompanies Company[] @relation("OwnerOf")  // Companies this owner owns (super admin)
   managesCompanies Company[] @relation("ManagerOf")  // Companies this owner manages (delegated by owner)
-  staffOf     Company[] @relation("StaffOf")       // Companies this owner is staff of
-  prospects   Prospect[]
-  clients     Client[]
-  pipelineEntries BDPipelineEntry[] @relation("AssignedPipelineEntries")
+  staffOf     Company[] @relation("StaffOf")       // Companies this owner is staff of (when invited)
 
   @@map("owners")
 }
@@ -76,8 +75,6 @@ model Client {
   company     Company  @relation(fields: [companyId], references: [id])
   contactId   String?  // Optional reference to universal Contact record
   contact     Contact? @relation(fields: [contactId], references: [id])
-  assignedOwnerId  String?
-  assignedOwner Owner?   @relation(fields: [assignedOwnerId], references: [id])        
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   pipelineEntries BDPipelineEntry[] @relation("ClientPipelineEntries")        
@@ -90,12 +87,11 @@ model Prospect {
   name        String
   email       String?
   phone       String?
-  companyId   String
+  companyId   String   // Ignite company that owns this prospect record (CRM owner)
   company     Company  @relation(fields: [companyId], references: [id])
+  prospectCompanyId String?  // The prospect's company (e.g., "Acme Corp" - the company they work for)
   contactId   String?  // Optional reference to universal Contact record
   contact     Contact? @relation(fields: [contactId], references: [id])
-  assignedOwnerId  String?
-  assignedOwner Owner?   @relation(fields: [assignedOwnerId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   pipelineEntries BDPipelineEntry[] @relation("ProspectPipelineEntries")
@@ -116,8 +112,6 @@ model BDPipelineEntry {
   value       Float?   // Deal value
   probability Float?   // Probability of closing (0-100)
   notes       String?  // Additional notes
-  assignedOwnerId  String?
-  assignedOwner Owner?   @relation("AssignedPipelineEntries", fields: [assignedOwnerId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
