@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import cookieSession from 'cookie-session';
 import prisma from './db.js';
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 
 // New organized routes (following architecture pattern)
 import userCreateRoute from './routes/Owner/userCreateRoute.js';
@@ -26,12 +29,29 @@ import targetAcquisitionRoute from './routes/targetAcquisitionRoute.js';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// --- Profile Picture Upload Setup ---
+// Make sure the persistent upload directory exists
+const uploadDir = '/data/uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure Multer for storing files on Render's persistent disk
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+});
+const upload = multer({ storage });
+// --- End Upload Setup ---
+
 // Middleware
 app.use(cors({
   origin: ['http://localhost:5173', 'https://ignitebd-frontend.vercel.app', 'https://ignitestrategies.co'], // Allow frontend origin
   credentials: true // Allow cookies to be sent
 }));
 app.use(express.json());
+// Serve uploaded files statically
+app.use('/uploads', express.static(uploadDir));
 app.use(cookieSession({
   name: 'session',
   keys: [process.env.SESSION_SECRET || 'devdevdev'], // Use a strong secret in production
@@ -62,7 +82,16 @@ app.use('/revenue', revenueRoute);
 app.use('/target-acquisition', targetAcquisitionRoute);
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Ignite Activation API is running' });
+  res.json({ status: 'ok', message: 'Ignite Activation API is running' });      
+});
+
+// POST /api/upload – handles profile picture upload
+app.post('/api/upload', upload.single('profilePic'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.json({ url: fileUrl });
 });
 
 // Test database connection
