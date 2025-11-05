@@ -27,6 +27,8 @@ router.put('/:id/profile', async (req, res) => {
       : undefined;
 
     // Update owner with profile data
+    // Note: Profile setup is optional - users can update this in Settings
+    // Future: Add "what type of owner are you" UX flow
     const owner = await prisma.owner.update({
       where: { id },
       data: {

@@ -87,6 +87,7 @@ router.get('/hydrate', verifyFirebaseToken, async (req, res) => {
       name: owner.name,
       email: owner.email,
       photoURL: owner.photoURL,
+      // profileCompleted removed - profile setup is optional, users can add more in Settings
       // Primary CompanyHQ (for easy access)
       companyHQId: primaryCompanyHQ?.id || null,
       companyHQ: primaryCompanyHQ || null,
@@ -115,4 +116,5 @@ router.get('/hydrate', verifyFirebaseToken, async (req, res) => {
 });
 
 export default router;
+
 
