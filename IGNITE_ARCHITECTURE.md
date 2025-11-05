@@ -379,6 +379,27 @@ const companyHQ = await prisma.companyHQ.findUnique({
 - Profile Setup = Fallback for name collection
 - Owner Identity Survey = Optional "get to know you" business survey
 
+### Company Setup - Two Separate Flows
+
+**Flow 1: Create Company (Primary Onboarding)**
+- **Path**: Splash → Welcome → Profile Setup (if needed) → Owner Identity Survey (optional) → `/company/create-or-choose` → `/companyprofile`
+- **Who**: Founders, owners, new businesses
+- **UI**: Create is the primary, prominent action
+- **Purpose**: Full onboarding flow for company creators
+
+**Flow 2: Join Company (Separate Onboarding Route)**
+- **Path**: Direct link with invite code → `/joincompany` (bypasses Splash/Welcome)
+- **Who**: Team members, employees joining existing companies
+- **How**: Company admin sends invite link via email with invite code
+- **Route**: `/joincompany` - standalone onboarding route
+- **Purpose**: Quick onboarding for team members joining existing CompanyHQ
+- **Note**: This is NOT part of the main onboarding flow - it's a separate entry point for invitees
+
+**Key Separation:**
+- **Create** = Main onboarding flow (Splash → Welcome → Setup)
+- **Join** = Separate onboarding route (invite link → join page)
+- Join route bypasses Splash/Welcome - direct access with invite code
+
 ---
 
 ## Route Architecture
