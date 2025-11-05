@@ -582,6 +582,182 @@ const { [entity] } = await response.json();
 
 ---
 
+## 🚀 Route Pattern C: Protected Entity Creation (Child Entities)
+
+### Purpose
+Create child entities (like CompanyHQ, Company, etc.) that belong to an authenticated Owner/User. These routes require Firebase authentication and create entities that are scoped to the authenticated user.
+
+### Naming
+- ✅ File: `routes/[Entity]/Create[Entity]Route.js`
+- ✅ Endpoint: `POST /api/[entity]/create`
+- ✅ Examples:
+  - Ignite BD: `routes/Company/CreateCompanyHQRoute.js` → `POST /api/companyhq/create`
+  - Ignite Events: `routes/Company/CreateCompanyRoute.js` → `POST /api/company/create`
+
+### Key Differences from Pattern A
+- **Pattern A**: Creates universal personhood entity (Owner, User, Athlete) - **NO middleware required**
+- **Pattern C**: Creates child entity (CompanyHQ, Company) - **REQUIRES `verifyFirebaseToken` middleware**
+
+### Implementation
+
+```javascript
+// routes/Company/CreateCompanyHQRoute.js
+import express from 'express';
+import prisma from '../../db.js';
+import { verifyFirebaseToken } from '../../middleware/firebaseMiddleware.js';
+
+const router = express.Router();
+
+/**
+ * POST /api/companyhq/create
+ * Creates a new CompanyHQ (tenant container) for an authenticated Owner
+ * Requires Firebase token verification
+ * 
+ * Headers: Authorization: Bearer <firebase-token>
+ * 
+ * Body:
+ * - companyName (required)
+ * - ownerId (required) - Owner ID from database
+ * - whatYouDo (optional)
+ * - companyStreet, companyCity, companyState (optional)
+ * - companyWebsite (optional)
+ * - companyIndustry, companyAnnualRev, yearsInBusiness, teamSize (optional)
+ */
+router.post('/create', verifyFirebaseToken, async (req, res) => {
+  try {
+    const {
+      companyName,
+      ownerId,
+      whatYouDo,
+      companyStreet,
+      companyCity,
+      companyState,
+      companyWebsite,
+      companyIndustry,
+      companyAnnualRev,
+      yearsInBusiness,
+      teamSize
+    } = req.body;
+
+    // Validate required fields
+    if (!companyName || !ownerId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Company name and owner ID are required'
+      });
+    }
+
+    // Verify owner exists (optional - ensures ownerId is valid)
+    const owner = await prisma.owner.findUnique({
+      where: { id: ownerId }
+    });
+
+    if (!owner) {
+      return res.status(404).json({
+        success: false,
+        error: 'Owner not found'
+      });
+    }
+
+    // Create CompanyHQ
+    const companyHQ = await prisma.companyHQ.create({
+      data: {
+        companyName,
+        ownerId,
+        whatYouDo: whatYouDo || null,
+        companyStreet: companyStreet || null,
+        companyCity: companyCity || null,
+        companyState: companyState || null,
+        companyWebsite: companyWebsite || null,
+        companyIndustry: companyIndustry || null,
+        companyAnnualRev: companyAnnualRev ? parseFloat(companyAnnualRev) : null,
+        yearsInBusiness: yearsInBusiness ? parseInt(yearsInBusiness) : null,
+        teamSize: teamSize || null
+      },
+      include: {
+        owner: true
+      }
+    });
+
+    return res.json({
+      success: true,
+      companyHQ
+    });
+
+  } catch (error) {
+    console.error('❌ CreateCompanyHQ error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to create company',
+      details: error.message
+    });
+  }
+});
+
+export default router;
+```
+
+### Usage in `index.js`
+```javascript
+import createCompanyHQRoute from './routes/Company/CreateCompanyHQRoute.js';
+app.use('/api/companyhq', createCompanyHQRoute);
+```
+
+### Frontend Usage
+```javascript
+// Get Firebase token (user must be authenticated)
+const firebaseUser = getCurrentUser();
+if (!firebaseUser) {
+  // Redirect to sign-in
+  return;
+}
+
+const idToken = await firebaseUser.getIdToken();
+
+// Get ownerId from localStorage (set during Owner creation/hydration)
+const ownerId = localStorage.getItem('ownerId');
+
+// Call protected create route
+const response = await fetch('/api/companyhq/create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${idToken}`  // Firebase token required
+  },
+  body: JSON.stringify({
+    companyName: 'My Company',
+    ownerId: ownerId,  // Owner ID from database
+    whatYouDo: 'We do X...',
+    companyStreet: '123 Main St',
+    companyCity: 'City',
+    companyState: 'State',
+    companyWebsite: 'www.example.com',
+    companyIndustry: 'technology',
+    companyAnnualRev: 1000000,
+    yearsInBusiness: 5,
+    teamSize: '2-10'
+  })
+});
+
+const { companyHQ } = await response.json();
+// Store companyHQ.id in localStorage
+```
+
+### Key Points
+- ✅ **Requires `verifyFirebaseToken` middleware** - User must be authenticated
+- ✅ **Takes ownerId from body** - Owner was created via Pattern A, now creating child entity
+- ✅ **Creates child entity** - CompanyHQ belongs to Owner (not universal personhood)
+- ✅ **Used in onboarding** - After Owner creation, create CompanyHQ
+- ✅ **Type conversions** - Handles String → Int/Float conversions (yearsInBusiness, annualRevenue)
+
+### When to Use Pattern C
+- Creating entities that belong to an authenticated Owner/User
+- CompanyHQ, Company, Contact, etc. (child entities)
+- Any entity that requires authentication to create
+- NOT for universal personhood entities (use Pattern A)
+
+---
+
 ## 🔐 Complete Authentication Flow
 
 ### 1. User Signs In (Frontend)
@@ -625,7 +801,30 @@ const { user } = await response.json();
 // Store full user data with companies, etc.
 ```
 
-### 4. Protected Routes
+### 4. Create Child Entities (Pattern C)
+```javascript
+// Create CompanyHQ after Owner exists
+const idToken = await firebaseUser.getIdToken();
+const ownerId = localStorage.getItem('ownerId');
+
+const response = await fetch('/api/companyhq/create', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${idToken}`
+  },
+  body: JSON.stringify({
+    companyName: 'My Company',
+    ownerId: ownerId,
+    // ... other fields
+  })
+});
+
+const { companyHQ } = await response.json();
+// Store companyHQ.id
+```
+
+### 5. Protected Routes
 ```javascript
 // All protected routes use verifyFirebaseToken middleware
 router.get('/protected', verifyFirebaseToken, async (req, res) => {
@@ -681,11 +880,15 @@ VITE_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
 
 ### Backend
 - [x] `middleware/firebaseMiddleware.js` exists with `verifyFirebaseToken`
-- [x] `routes/User/userCreateRoute.js` exists (Pattern A)
-- [x] `routes/User/userHydrateRoute.js` exists (Pattern B)
-- [x] Routes mounted at `/api/user`
+- [x] `routes/User/userCreateRoute.js` exists (Pattern A - universal personhood)
+- [x] `routes/User/userHydrateRoute.js` exists (Pattern B - hydration)
+- [x] `routes/Company/CreateCompanyHQRoute.js` exists (Pattern C - child entities)
+- [x] Routes mounted at appropriate paths (`/api/user`, `/api/companyhq`, etc.)
 - [x] Environment variable: `FIREBASE_SERVICE_ACCOUNT_KEY` (from Render)
 - [x] All protected routes use `verifyFirebaseToken` middleware
+- [x] Pattern A routes have NO middleware (public, creates personhood)
+- [x] Pattern B routes have `verifyFirebaseToken` (hydration)
+- [x] Pattern C routes have `verifyFirebaseToken` (child entity creation)
 
 ### Frontend
 - [x] `src/config/firebaseConfig.js` exists
