@@ -8,6 +8,7 @@ import path from 'path';
 
 // Routes (following architecture pattern)
 import createOwnerRoute from './routes/Owner/CreateOwnerRoute.js';
+import ownerProfileSetupRoute from './routes/Owner/OwnerProfileSetupRoute.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -50,6 +51,7 @@ app.use(cookieSession({
 
 // Routes - Organized by feature (following IGNITE_ARCHITECTURE.md)
 app.use('/api/owner', createOwnerRoute);        // Owner create/upsert route
+app.use('/api/owner', ownerProfileSetupRoute);   // Owner profile setup route
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ignite Activation API is running' });      
