@@ -84,6 +84,14 @@ The IgniteBD backend is built on a **contact + company first** architecture desi
 - **Company has company data** - address, revenue, industry (similar to CompanyHQ)
 - A contact's `contactCompanyId` references the `Company.id` they work for
 
+### 7. CompanyHQ-Scoped Models (Persona, etc.)
+
+**Some models are relational to CompanyHQ only (not to prospect/client Companies):**
+
+- **Persona** - Scoped to CompanyHQ only (not to individual prospect/client companies)
+- **Future models** may also be CompanyHQ-scoped (upserted when needed)
+- **Real-world matching**: Each contact will either be in a persona or not - matching logic to be determined
+
 ---
 
 ## Schema Structure

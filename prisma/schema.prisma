@@ -284,7 +284,7 @@ model ContactList {
   updatedAt   DateTime @updatedAt
   
   // Relationships
-  contacts    ContactListMember[]
+  contacts    Contact[]  // Reverse relation from Contact.contactListId
   campaigns   Campaign[] @relation("ContactListCampaigns")
 
   @@map("contact_lists")
@@ -312,18 +312,17 @@ model Contact {
   howMet        String?  // How we met this contact
   photoURL      String?  // Profile photo (e.g., from LinkedIn - can hydrate/enrich)
 
-  // Pipeline tracking (intentional - pipeline state lives in Pipeline model)
+    // Pipeline tracking (intentional - pipeline state lives in Pipeline model)
   pipeline Pipeline?
-  
+
   // Contact List (container for grouping contacts)
   contactListId String?
   contactList   ContactList? @relation(fields: [contactListId], references: [id], onDelete: SetNull)
-  
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relationships
-  listMemberships ContactListMember[]
   campaignRecipients CampaignRecipient[]
   // Reverse relations - a Contact can be linked to a Prospect or Client      
   prospects  Prospect[]
@@ -344,18 +343,6 @@ model Pipeline {
   updatedAt   DateTime @updatedAt
 
   @@map("pipelines")
-}
-
-model ContactListMember {
-  id          String   @id @default(cuid())
-  contactListId String
-  contactList ContactList @relation(fields: [contactListId], references: [id], onDelete: Cascade)
-  contactId   String
-  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-
-  @@unique([contactListId, contactId])
-  @@map("contact_list_members")
 }
 
 // ============================================
@@ -488,8 +475,8 @@ model Proposal {
 
 model Event {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   name        String
   description String?
   location    String?
@@ -510,8 +497,8 @@ model Event {
 
 model Meeting {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   title       String
   description String?
   attendeeName String?
@@ -536,8 +523,8 @@ model Meeting {
 
 model AdCampaign {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   name        String
   platform    String   // Google, Facebook, LinkedIn, etc.
   status      String   @default("draft") // draft, active, paused, completed
