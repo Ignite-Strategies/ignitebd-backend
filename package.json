@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node index.js",
-    "build": "prisma generate && prisma db push",
+    "build": "prisma generate && prisma db push --accept-data-loss",
     "start": "node index.js",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
