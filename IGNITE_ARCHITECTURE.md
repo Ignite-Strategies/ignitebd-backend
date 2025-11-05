@@ -49,7 +49,7 @@ The IgniteBD backend is built on a **contact + company first** architecture desi
 
 **Hydration by String Values:**
 - Can hydrate contacts by filtering on `pipeline` and `stage` string values
-- Example: `GET /api/contacts?companyId=xxx&pipeline=prospect&stage=prospect-meeting`
+- Example: `GET /api/contacts?companyHQId=xxx&pipeline=prospect&stage=prospect-meeting`
 - String values work perfectly for filtering and hydrating contacts
 
 ### 4. Contacts as Universal Personhood
@@ -429,14 +429,14 @@ GET    /api/owner/hydrate             → Hydrate Owner with full data (requires
 ### Contact Routes
 
 ```
-GET    /api/contacts?companyId=xxx              → List all contacts for company (filtered by CompanyHQId)
-GET    /api/contacts?companyId=xxx&pipeline=xxx → List contacts by pipeline (string value)
-GET    /api/contacts?companyId=xxx&stage=xxx    → List contacts by stage (string value)
-GET    /api/contacts?companyId=xxx&pipeline=xxx&stage=xxx → List contacts by pipeline AND stage
-GET    /api/contacts/:contactId                 → Get single contact
-POST   /api/contacts                            → Create contact (body: { companyId (CompanyHQId), firstName, lastName, contactCompanyId?, pipeline?, stage?, ... })
-PUT    /api/contacts/:contactId                 → Update contact - can update pipeline/stage
-DELETE /api/contacts/:contactId                 → Delete contact
+GET    /api/contacts?companyHQId=xxx              → List all contacts for company (filtered by CompanyHQId)
+GET    /api/contacts?companyHQId=xxx&pipeline=xxx → List contacts by pipeline (string value)
+GET    /api/contacts?companyHQId=xxx&stage=xxx    → List contacts by stage (string value)
+GET    /api/contacts?companyHQId=xxx&pipeline=xxx&stage=xxx → List contacts by pipeline AND stage
+GET    /api/contacts/:contactId                   → Get single contact
+POST   /api/contacts                               → Create contact (body: { companyId (CompanyHQId), firstName, lastName, contactCompanyId?, pipeline?, stage?, ... })
+PUT    /api/contacts/:contactId                   → Update contact - can update pipeline/stage
+DELETE /api/contacts/:contactId                   → Delete contact
 ```
 
 ### Company Routes (Prospect/Client Companies)
