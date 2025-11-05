@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,132 +8,104 @@ datasource db {
 }
 
 model Owner {
-  id         String   @id @default(cuid())
-  firebaseId String   @unique // Firebase auth ID (for authentication)
-  name       String?
-  email      String?
-  photoURL   String? // Profile picture URL (from Firebase)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // Reverse relations
-  ownedCompanies   CompanyHQ[] @relation("OwnerOf") // CompanyHQs this owner owns (super admin)
-  managedCompanies CompanyHQ[] @relation("ManagerOf") // CompanyHQs this owner manages (delegated by owner)
+  id               String      @id @default(cuid())
+  firebaseId       String      @unique
+  name             String?
+  email            String?
+  photoURL         String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  managedCompanies CompanyHQ[] @relation("ManagerOf")
+  ownedCompanies   CompanyHQ[] @relation("OwnerOf")
 
   @@map("owners")
 }
 
 model CompanyHQ {
-  id               String   @id @default(cuid()) // This is CompanyHQId - the root container
+  id               String        @id @default(cuid())
   companyName      String
   companyAddress   String?
-  companyIndustry  String? // Self-reported industry
-  companyAnnualRev Float? // Self-reported annual revenue (stored as number, can be converted from range)
+  companyIndustry  String?
+  companyAnnualRev Float?
   yearsInBusiness  Int?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  // Ownership & Management
-  ownerId   String // Super admin - literal owner (required)
-  owner     Owner   @relation("OwnerOf", fields: [ownerId], references: [id])
-  managerId String? // Manager delegated by owner to add people (optional)
-  manager   Owner?  @relation("ManagerOf", fields: [managerId], references: [id])
-
-  // All CRM data nested under CompanyHQId
-  contacts     Contact[]
-  contactLists ContactList[]
-  companies    Company[] // Prospect/client companies nested under this CompanyHQ
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  ownerId          String
+  managerId        String?
+  companies        Company[]
+  manager          Owner?        @relation("ManagerOf", fields: [managerId], references: [id])
+  owner            Owner         @relation("OwnerOf", fields: [ownerId], references: [id])
+  contactLists     ContactList[]
+  contacts         Contact[]
 
   @@map("company_hqs")
 }
 
 model Company {
-  id          String    @id @default(cuid())
-  companyHQId String // CompanyHQId - scoped to tenant (multi-tenancy)
-  companyHQ   CompanyHQ @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
-
-  // Company data (similar to CompanyHQ)
+  id              String    @id @default(cuid())
+  companyHQId     String
   companyName     String
   address         String?
   industry        String?
   revenue         Float?
   yearsInBusiness Int?
-
-  // Document references (for sending/attaching to companies)
-  proposalId String? // Reference to proposal sent to this company
-  contractId String? // Reference to contract for this company
-  invoiceId  String? // Reference to invoice for this company
-
-  // Reverse relation
-  contacts Contact[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  proposalId      String?
+  contractId      String?
+  invoiceId       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  companyHQ       CompanyHQ @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
+  contacts        Contact[]
 
   @@map("companies")
 }
 
 model ContactList {
   id          String    @id @default(cuid())
-  companyId   String // CompanyHQId - scoped to company
-  companyHQ   CompanyHQ @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId   String
   name        String
   description String?
-  type        String? // Campaign, Event, Organization, Custom
+  type        String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
-  // Relationships
-  contacts Contact[] // Reverse relation from Contact.contactListId
+  companyHQ   CompanyHQ @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  contacts    Contact[]
 
   @@map("contact_lists")
 }
 
 model Contact {
-  id        String    @id @default(cuid())
-  companyId String // CompanyHQId - direct relationship, no intermediate layer
-  companyHQ CompanyHQ @relation(fields: [companyId], references: [id])
-
-  // Core person data (flat structure)
-  firstName String?
-  lastName  String?
-  goesBy    String? // Preferred name (to avoid robot-sounding names)
-  email     String? // NOT required - can enrich later (not like HubSpot)
-  phone     String?
-  title     String?
-
-  // Company the contact works for (prospect/client company)
-  contactCompanyId String? // Reference to Company (the company they work for)
-  contactCompany   Company? @relation(fields: [contactCompanyId], references: [id], onDelete: SetNull)
-
-  // Smart scaffolding fields (can be null, prepared for AI/structured data)
-  buyerDecision String? // Buyer decision maker type (string value from buyerconfig.js) - e.g., 'senior-person', 'product-user', 'has-money'
-  howMet        String? // How we met this contact
-  photoURL      String? // Profile photo (e.g., from LinkedIn - can hydrate/enrich)
-
-  // Pipeline tracking (intentional - pipeline state lives in Pipeline model)
-  pipeline Pipeline?
-
-  // Contact List (container for grouping contacts)
-  contactListId String?
-  contactList   ContactList? @relation(fields: [contactListId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String       @id @default(cuid())
+  companyId        String
+  firstName        String?
+  lastName         String?
+  goesBy           String?
+  email            String?
+  phone            String?
+  title            String?
+  contactCompanyId String?
+  buyerDecision    String?
+  howMet           String?
+  photoURL         String?
+  contactListId    String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  companyHQ        CompanyHQ    @relation(fields: [companyId], references: [id])
+  contactCompany   Company?     @relation(fields: [contactCompanyId], references: [id])
+  contactList      ContactList? @relation(fields: [contactListId], references: [id])
+  pipeline         Pipeline?
 
   @@map("contacts")
 }
 
 model Pipeline {
-  id        String  @id @default(cuid())
-  contactId String  @unique // One pipeline per contact - lives inside contact
-  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  pipeline String // Pipeline configuration identifier (string value from pipelineconfig.js)
-  stage    String // Current stage in pipeline (string value from stageconfig.js)
-
+  id        String   @id @default(cuid())
+  contactId String   @unique
+  pipeline  String
+  stage     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@map("pipelines")
 }

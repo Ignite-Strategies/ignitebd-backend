@@ -29,7 +29,12 @@ const upload = multer({ storage });
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://ignitebd-frontend.vercel.app', 'https://ignitestrategies.co'], // Allow frontend origin
+  origin: [
+    'http://localhost:5173', 
+    'https://ignitebd-frontend.vercel.app', 
+    'https://ignitestrategies.co',
+    'https://growth.ignitestrategies.co'  // Production frontend subdomain
+  ],
   credentials: true // Allow cookies to be sent
 }));
 app.use(express.json());
