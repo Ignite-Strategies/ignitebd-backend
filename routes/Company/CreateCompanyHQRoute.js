@@ -78,8 +78,8 @@ router.post('/create', verifyFirebaseToken, async (req, res) => {
         companyState: companyState || null,
         companyWebsite: companyWebsite || null,
         companyIndustry: companyIndustry || null,
-        companyAnnualRev: companyAnnualRev ? parseFloat(companyAnnualRev) : null,
-        yearsInBusiness: yearsInBusiness ? parseInt(yearsInBusiness) : null,
+        companyAnnualRev: companyAnnualRev || null,  // Store as range string (e.g., "0-100k", "100k-500k")
+        yearsInBusiness: yearsInBusiness || null,  // Store as range string (e.g., "0-1", "2-5")
         teamSize: teamSize || null,
         ownerId: ownerId
       },
