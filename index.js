@@ -13,16 +13,16 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // --- Profile Picture Upload Setup ---
-// Make sure the persistent upload directory exists
-const uploadDir = '/data/uploads';
+// Use local uploads directory in project folder
+const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configure Multer for storing files on Render's persistent disk
+// Configure Multer for storing files locally
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),                                                                          
 });
 const upload = multer({ storage });
 // --- End Upload Setup ---

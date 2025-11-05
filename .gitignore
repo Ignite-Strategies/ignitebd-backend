@@ -3,4 +3,5 @@ dist
 .env
 .local.env
 *.log
+uploads
 
