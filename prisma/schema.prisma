@@ -12,49 +12,47 @@ datasource db {
 
 model Owner {
   id          String   @id @default(cuid())
-  firebaseId  String   @unique
-  name        String
-  email       String   @unique
+  firebaseId  String   @unique  // Firebase auth ID (for authentication)
+  name        String?
+  email       String?
   photoURL    String?  // Profile picture URL (from Firebase)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Company relationships only (basic personhood)
-  // Owner sees everything scoped to companyId - all CRM data is company-scoped
-  ownedCompanies Company[] @relation("OwnerOf")  // Companies this owner owns (super admin)
-  managesCompanies Company[] @relation("ManagerOf")  // Companies this owner manages (delegated by owner)
-  staffOf     Company[] @relation("StaffOf")       // Companies this owner is staff of (when invited)
+  // Reverse relations
+  ownedCompanies CompanyHQ[] @relation("OwnerOf")  // CompanyHQs this owner owns (super admin)
+  managedCompanies CompanyHQ[] @relation("ManagerOf")  // CompanyHQs this owner manages (delegated by owner)
 
   @@map("owners")
 }
 
-model Company {
-  id          String   @id @default(cuid())
+model CompanyHQ {
+  id          String   @id @default(cuid())  // This is CompanyHQId - the root container
   companyName String
   companyAddress String?
   companyIndustry String?  // Self-reported industry
   companyAnnualRev Float? // Self-reported annual revenue (stored as number, can be converted from range)
-  yearsInBusiness Int? // Self-reported years in business
+  yearsInBusiness Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Ownership & Management
-  ownerId     String   // Original creator/owner of the company (super admin)
-  owner       Owner     @relation("OwnerOf", fields: [ownerId], references: [id])
-  managerId   String?  // Manager assigned by owner - can manage CRM stack but not company settings
-  manager     Owner?    @relation("ManagerOf", fields: [managerId], references: [id])
-  staff       Owner[]   @relation("StaffOf")
-  
-  // CRM Data (all contacts, prospects, clients)
+  ownerId     String   // Super admin - literal owner (required)
+  owner       Owner    @relation("OwnerOf", fields: [ownerId], references: [id])
+  managerId   String?  // Manager delegated by owner to add people (optional)
+  manager     Owner?   @relation("ManagerOf", fields: [managerId], references: [id])
+
+  // All CRM data nested under CompanyHQId
+  contacts    Contact[]
+  contactLists ContactList[]
+  companies   Company[]  // Prospect/client companies nested under this CompanyHQ
   prospects   Prospect[]
   clients     Client[]
-  contacts    Contact[]  // Universal person container - includes prospects, clients, and other contacts
   pipelineEntries BDPipelineEntry[]
   // TODO: Commented out stacks - will be revenuegen or similar later
   // revenueStacks RevenueStack[]
   // humanCapitalStacks HumanCapitalStack[]
   // targetAcquisitionStacks TargetAcquisitionStack[]
-  contactLists ContactList[]
   campaigns   Campaign[]
   templates   Template[]
   personas    Persona[]
@@ -62,6 +60,32 @@ model Company {
   events      Event[]
   meetings    Meeting[]
   adCampaigns AdCampaign[]
+
+  @@map("company_hqs")
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  companyHQId String   // CompanyHQId - scoped to tenant (multi-tenancy)
+  companyHQ   CompanyHQ @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
+  
+  // Company data (similar to CompanyHQ)
+  companyName String
+  address     String?
+  industry    String?
+  revenue     Float?
+  yearsInBusiness Int?
+  
+  // Document references (for sending/attaching to companies)
+  proposalId String?  // Reference to proposal sent to this company
+  contractId String?  // Reference to contract for this company
+  invoiceId  String?  // Reference to invoice for this company
+  
+  // Reverse relation
+  contacts    Contact[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("companies")
 }
@@ -72,7 +96,7 @@ model Client {
   email       String?
   phone       String?
   companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   contactId   String?  // Optional reference to universal Contact record
   contact     Contact? @relation(fields: [contactId], references: [id])
   createdAt   DateTime @default(now())
@@ -87,8 +111,8 @@ model Prospect {
   name        String
   email       String?
   phone       String?
-  companyId   String   // Ignite company that owns this prospect record (CRM owner)
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId - Ignite company that owns this prospect record (CRM owner)
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   prospectCompanyId String?  // The prospect's company (e.g., "Acme Corp" - the company they work for)
   contactId   String?  // Optional reference to universal Contact record
   contact     Contact? @relation(fields: [contactId], references: [id])
@@ -101,8 +125,8 @@ model Prospect {
 
 model BDPipelineEntry {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   clientId    String?  // Optional - if they're already a client
   client      Client? @relation("ClientPipelineEntries", fields: [clientId], references: [id])
   prospectId  String?  // Optional - if they're still a prospect
@@ -251,8 +275,8 @@ model PlatformProspect {
 
 model ContactList {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId - scoped to company
+  companyHQ   CompanyHQ @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name        String
   description String?
   type        String?  // Campaign, Event, Organization, Custom
@@ -268,27 +292,58 @@ model ContactList {
 
 model Contact {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId - direct relationship, no intermediate layer
+  companyHQ   CompanyHQ @relation(fields: [companyId], references: [id])
+  
+  // Core person data (flat structure)
   firstName   String?
   lastName    String?
-  email       String?
+  goesBy      String?  // Preferred name (to avoid robot-sounding names)
+  email       String?  // NOT required - can enrich later (not like HubSpot)
   phone       String?
-  companyName String?
   title       String?
-  notes       String?
-  tags        String[] // Array of tags (e.g., ["prospect", "client", "vendor", "partner"])
+  
+  // Company the contact works for (prospect/client company)
+  contactCompanyId String?  // Reference to Company (the company they work for)
+  contactCompany   Company? @relation(fields: [contactCompanyId], references: [id], onDelete: SetNull)
+  
+  // Smart scaffolding fields (can be null, prepared for AI/structured data)
+  buyerDecision String?  // Buyer decision maker type (string value from buyerconfig.js) - e.g., 'senior-person', 'product-user', 'has-money'
+  howMet        String?  // How we met this contact
+  photoURL      String?  // Profile photo (e.g., from LinkedIn - can hydrate/enrich)
+
+  // Pipeline tracking (intentional - pipeline state lives in Pipeline model)
+  pipeline Pipeline?
+  
+  // Contact List (container for grouping contacts)
+  contactListId String?
+  contactList   ContactList? @relation(fields: [contactListId], references: [id], onDelete: SetNull)
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   // Relationships
   listMemberships ContactListMember[]
   campaignRecipients CampaignRecipient[]
-  // Reverse relations - a Contact can be linked to a Prospect or Client
+  // Reverse relations - a Contact can be linked to a Prospect or Client      
   prospects  Prospect[]
   clients    Client[]
 
   @@map("contacts")
+}
+
+model Pipeline {
+  id          String   @id @default(cuid())
+  contactId   String   @unique  // One pipeline per contact - lives inside contact
+  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  pipeline    String   // Pipeline configuration identifier (string value from pipelineconfig.js)
+  stage       String   // Current stage in pipeline (string value from stageconfig.js)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("pipelines")
 }
 
 model ContactListMember {
@@ -309,8 +364,8 @@ model ContactListMember {
 
 model Campaign {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   contactListId String?
   contactList ContactList? @relation("ContactListCampaigns", fields: [contactListId], references: [id])
   name        String
@@ -361,8 +416,8 @@ model CampaignAttachment {
 
 model Template {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   name        String
   subject     String
   body        String   // Email body template with variables
@@ -379,8 +434,8 @@ model Template {
 
 model Persona {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   name        String
   title       String?
   age         String?
@@ -405,8 +460,8 @@ model Persona {
 
 model Proposal {
   id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  companyId   String   // CompanyHQId
+  company     CompanyHQ  @relation(fields: [companyId], references: [id])
   title       String
   description String?
   clientName  String?

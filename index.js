@@ -7,9 +7,9 @@ import fs from 'fs';
 import path from 'path';
 
 // New organized routes (following architecture pattern)
-import userCreateRoute from './routes/Owner/userCreateRoute.js';
-import userHydrateRoute from './routes/Owner/userHydrateRoute.js';
-import companyRoute from './routes/Company/companyRoute.js';
+import createOwnerRoute from './routes/Owner/CreateOwnerRoute.js';
+// import userHydrateRoute from './routes/Owner/userHydrateRoute.js';
+// import companyRoute from './routes/Company/companyRoute.js';
 
 // Legacy routes (to be refactored into organized structure)
 import adminUserAuthRoute from './routes/adminUserAuthRoute.js';
@@ -30,35 +30,10 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // --- Profile Picture Upload Setup ---
-// Use a writable directory (Render allows /tmp or relative paths)
-let uploadDir = process.env.UPLOAD_DIR || './uploads';
+// Make sure the persistent upload directory exists
+const uploadDir = '/data/uploads';
 if (!fs.existsSync(uploadDir)) {
-  try {
-    fs.mkdirSync(uploadDir, { recursive: true });
-    console.log('✅ Upload directory created:', uploadDir);
-  } catch (error) {
-    console.error('⚠️ Could not create upload directory:', error.message);
-    // Fallback to /tmp if available
-    const tmpDir = '/tmp/uploads';
-    if (fs.existsSync('/tmp')) {
-      try {
-        if (!fs.existsSync(tmpDir)) {
-          fs.mkdirSync(tmpDir, { recursive: true });
-        }
-        uploadDir = tmpDir;
-        console.log('✅ Using fallback upload directory:', tmpDir);
-      } catch (err) {
-        console.error('❌ Could not create fallback directory:', err.message);
-        // Last resort: use current directory
-        uploadDir = './uploads';
-        console.log('⚠️ Using current directory as fallback');
-      }
-    } else {
-      // Use current directory as fallback
-      uploadDir = './uploads';
-      console.log('⚠️ Using current directory as fallback');
-    }
-  }
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // Configure Multer for storing files on Render's persistent disk
@@ -71,12 +46,7 @@ const upload = multer({ storage });
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:5173', 
-    'https://ignitebd-frontend.vercel.app', 
-    'https://ignitestrategies.co',
-    'https://growth.ignitestrategies.co'
-  ], // Allow frontend origin
+  origin: ['http://localhost:5173', 'https://ignitebd-frontend.vercel.app', 'https://ignitestrategies.co'], // Allow frontend origin
   credentials: true // Allow cookies to be sent
 }));
 app.use(express.json());
@@ -90,11 +60,11 @@ app.use(cookieSession({
   sameSite: 'lax'
 }));
 
-// Routes - Organized by feature (following IgniteBD_ARCHITECTURE.md)
-// NEW organized routes (matching schema)
-app.use('/api/user', userCreateRoute);          // User create route (Pattern A)
-app.use('/api/user', userHydrateRoute);         // User hydrate route (Pattern B) - includes /me, /companies
-app.use('/company', companyRoute);              // Company CRUD routes
+// Routes - Organized by feature (following IGNITE_ARCHITECTURE.md)
+// NEW organized routes (matching architecture)
+app.use('/api/owner', createOwnerRoute);        // Owner create/upsert route
+// app.use('/api/user', userHydrateRoute);         // User hydrate route (Pattern B) - includes /me, /companies
+// app.use('/company', companyRoute);              // Company CRUD routes
 
 // Legacy routes (to be refactored into organized folders)
 app.use('/adminUserAuth', adminUserAuthRoute);
