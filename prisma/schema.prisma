@@ -8,15 +8,17 @@ datasource db {
 }
 
 model Owner {
-  id               String      @id @default(cuid())
-  firebaseId       String      @unique
-  name             String?
-  email            String?
-  photoURL         String?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  managedCompanies CompanyHQ[] @relation("ManagerOf")
-  ownedCompanies   CompanyHQ[] @relation("OwnerOf")
+  id                String      @id @default(cuid())
+  firebaseId        String      @unique
+  name              String?
+  email             String?
+  photoURL          String?
+  profileCompleted  Boolean     @default(false)
+  teamSize          String?     // Team size for owner context (e.g., "just-me", "2-10", "11-50", "51-200", "200+")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  managedCompanies  CompanyHQ[] @relation("ManagerOf")
+  ownedCompanies    CompanyHQ[] @relation("OwnerOf")
 
   @@map("owners")
 }
@@ -28,6 +30,7 @@ model CompanyHQ {
   companyIndustry  String?
   companyAnnualRev Float?
   yearsInBusiness  Int?
+  teamSize         String?       // Team size for company (e.g., "just-me", "2-10", "11-50", "51-200", "200+")
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   ownerId          String
