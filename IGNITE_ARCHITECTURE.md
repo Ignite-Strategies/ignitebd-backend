@@ -102,9 +102,9 @@ The IgniteBD backend is built on a **contact + company first** architecture desi
 model Owner {
   id          String   @id @default(cuid())
   firebaseId  String   @unique  // Firebase auth ID (for authentication)
-  name        String?
-  email       String?
-  photoURL    String?
+  name        String?  // Full name (from Firebase displayName or firstName/lastName)
+  email       String?  // Email address (from Firebase)
+  photoURL    String?  // Profile photo URL (from Firebase - stored for quick access)
   
   // Reverse relations
   ownedCompanies CompanyHQ[] @relation("OwnerOf")
@@ -114,6 +114,13 @@ model Owner {
   updatedAt   DateTime @updatedAt
 }
 ```
+
+**Firebase Integration:**
+- `firebaseId` = Firebase UID (universal identifier)
+- `name` = Parsed from Firebase `displayName` (format: "First Last") or set manually
+- `email` = From Firebase auth
+- `photoURL` = From Firebase `photoURL` - **Stored in Owner model for quick access** (no need to fetch from Firebase every time)
+- **DisplayName Parsing**: `displayName?.split(' ')[0]` for firstName, `displayName?.split(' ')[1]` for lastName, then combined into `name`
 
 ### CompanyHQ Model (Root Container - Tenant)
 
@@ -315,7 +322,52 @@ const companyHQ = await prisma.companyHQ.findUnique({
 
 ---
 
+## Firebase Authentication & Owner Hydration
+
+### Owner Creation Flow
+
+**POST /api/owner/create** (Pattern A - Find or Create):
+- Receives Firebase auth data (firebaseId, email, firstName, lastName, photoURL)
+- Finds existing Owner by `firebaseId`
+- If not found, creates new Owner record
+- Parses `displayName` into `name` field (or uses firstName/lastName)
+- Stores `photoURL` from Firebase for quick access
+- Returns Owner object
+
+### Owner Hydration Flow
+
+**GET /api/owner/hydrate** (Pattern B - Universal Hydration):
+- Requires `verifyFirebaseToken` middleware
+- Gets `firebaseId` from verified token (`req.user.uid`)
+- Finds Owner by `firebaseId` with all relations:
+  - `ownedCompanies` - CompanyHQs where ownerId matches
+  - `managedCompanies` - CompanyHQs where managerId matches
+- Returns full Owner data for routing decisions
+
+**Welcome Page Routing Logic** (Frontend):
+1. Calls `GET /api/owner/hydrate` with Firebase token
+2. Checks Owner record:
+   - **If no `name`** → Route to `/profilesetup` (profile incomplete)
+   - **If no `ownedCompanies`** → Route to `/company/create-or-choose` (no CompanyHQ)
+   - **If all complete** → Route to `/growth-dashboard` (home base)
+
+**Key Points:**
+- `photoURL` is stored in Owner model - don't need to fetch from Firebase every time
+- Firebase provides: `displayName`, `email`, `photoURL`
+- Owner model stores: `name` (parsed from displayName), `email`, `photoURL`
+- Routing based on what's missing (name, CompanyHQ)
+
+---
+
 ## Route Architecture
+
+### Owner Routes
+
+```
+POST   /api/owner/create              → Find or create Owner by firebaseId
+PUT    /api/owner/:id/profile        → Update Owner profile (name, email, etc.)
+GET    /api/owner/hydrate             → Hydrate Owner with full data (requires token)
+```
 
 ### Contact Routes
 
