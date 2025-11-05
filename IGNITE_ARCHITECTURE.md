@@ -351,10 +351,18 @@ const companyHQ = await prisma.companyHQ.findUnique({
 
 **Welcome Page Routing Logic** (Frontend):
 1. Calls `GET /api/owner/hydrate` with Firebase token
-2. Checks Owner record:
+2. Stores Owner and CompanyHQ data in localStorage:
+   - `ownerId`, `owner` (full Owner object)
+   - `companyHQId`, `companyHQ` (full CompanyHQ object if exists)
+3. Checks Owner record:
    - **If no `name`** → Route to `/profilesetup` (fallback - collect firstName/lastName)
    - **If no `ownedCompanies`** → Route to `/company/create-or-choose` (no CompanyHQ)
    - **If all complete** → Route to `/growth-dashboard` (home base)
+
+**CompanyHQ Persistence:**
+- After CompanyHQ creation, both `companyHQId` (string) and `companyHQ` (full object) are stored in localStorage
+- Dashboard uses `companyHQId` for verification and `companyHQ.companyName` for personalization
+- Owner hydration refreshes CompanyHQ data on each Welcome page load
 
 **Profile Setup vs Owner Identity Survey - Separation of Concerns:**
 
