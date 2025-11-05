@@ -13,7 +13,6 @@ model Owner {
   name              String?
   email             String?
   photoURL          String?
-  profileCompleted  Boolean     @default(false)
   teamSize          String?     // Team size for owner context (e.g., "just-me", "2-10", "11-50", "51-200", "200+")
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
