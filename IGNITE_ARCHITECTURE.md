@@ -347,15 +347,37 @@ const companyHQ = await prisma.companyHQ.findUnique({
 **Welcome Page Routing Logic** (Frontend):
 1. Calls `GET /api/owner/hydrate` with Firebase token
 2. Checks Owner record:
-   - **If no `name`** → Route to `/profilesetup` (profile incomplete)
+   - **If no `name`** → Route to `/profilesetup` (fallback - collect firstName/lastName)
    - **If no `ownedCompanies`** → Route to `/company/create-or-choose` (no CompanyHQ)
    - **If all complete** → Route to `/growth-dashboard` (home base)
+
+**Profile Setup vs Owner Identity Survey - Separation of Concerns:**
+
+- **Profile Setup (`/profilesetup`)**:
+  - **Purpose**: Fallback to collect basic profile data (firstName, lastName)
+  - **When**: If Firebase doesn't provide name or name is missing/corrupted
+  - **Data**: Pure profile data (firstName, lastName → combined into `name`)
+  - **Route**: `PUT /api/owner/:id/profile` to update owner name
+  - **Next Step**: Routes to company setup after name is collected
+
+- **Owner Identity Survey (`/owner-identity-survey`)**:
+  - **Purpose**: Optional survey to understand owner's business identity and preferences
+  - **When**: After signup, optional step (can skip)
+  - **Data**: Business characteristics:
+    - `ownerType` (founder, marketing, bd-manager, solo, explorer)
+    - `growthSpeed` (fast, steady, slow, flexible)
+    - `managementStyle` (hands-on, delegate, collaborative, strategic)
+  - **Route**: `PUT /api/owner/:id/survey` to save owner identity data
+  - **Next Step**: Routes to company setup
+  - **Note**: NOT about profile data - that comes from Firebase. This is about understanding the owner's business approach.
 
 **Key Points:**
 - `photoURL` is stored in Owner model - don't need to fetch from Firebase every time
 - Firebase provides: `displayName`, `email`, `photoURL`
 - Owner model stores: `name` (parsed from displayName), `email`, `photoURL`
-- Routing based on what's missing (name, CompanyHQ)
+- Routing based on what's missing (name check is universal routing logic, not a stored flag)
+- Profile Setup = Fallback for name collection
+- Owner Identity Survey = Optional "get to know you" business survey
 
 ---
 
@@ -365,7 +387,8 @@ const companyHQ = await prisma.companyHQ.findUnique({
 
 ```
 POST   /api/owner/create              → Find or create Owner by firebaseId
-PUT    /api/owner/:id/profile        → Update Owner profile (name, email, etc.)
+PUT    /api/owner/:id/profile        → Update Owner profile (name, email) - fallback for name collection
+PUT    /api/owner/:id/survey          → Save Owner identity survey (ownerType, growthSpeed, managementStyle)
 GET    /api/owner/hydrate             → Hydrate Owner with full data (requires token)
 ```
 
