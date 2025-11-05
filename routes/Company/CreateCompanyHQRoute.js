@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../../db.js';
-import { verifyFirebaseToken } from '../../middleware/verifyFirebaseToken.js';
+import { verifyFirebaseToken } from '../../middleware/firebaseMiddleware.js';
 
 const router = express.Router();
 
