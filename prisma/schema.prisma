@@ -25,7 +25,11 @@ model Owner {
 model CompanyHQ {
   id               String        @id @default(cuid())
   companyName      String
-  companyAddress   String?
+  companyStreet    String?       // Street address
+  companyCity      String?       // City
+  companyState     String?       // State
+  companyWebsite   String?       // Website URL (for LinkedIn extraction, etc.)
+  whatYouDo        String?       // What the company does (description)
   companyIndustry  String?
   companyAnnualRev Float?
   yearsInBusiness  Int?

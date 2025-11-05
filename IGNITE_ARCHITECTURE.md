@@ -136,10 +136,15 @@ model CompanyHQ {
   
   // CompanyHQ data
   companyName String
-  companyAddress String?
+  companyStreet String?    // Street address
+  companyCity String?      // City
+  companyState String?     // State, ZIP
+  companyWebsite String?   // Website URL (for LinkedIn extraction, etc.)
+  whatYouDo String?        // What the company does (description)
   companyIndustry String?
-  companyAnnualRev Float?
-  yearsInBusiness Int?
+  companyAnnualRev Float?  // Annual revenue (stored as Float)
+  yearsInBusiness Int?     // Years in business (stored as Int)
+  teamSize String?        // Team size (e.g., "just-me", "2-10", "11-50", "51-200", "200+")
   
   // All CRM data nested under CompanyHQId
   contacts    Contact[]
