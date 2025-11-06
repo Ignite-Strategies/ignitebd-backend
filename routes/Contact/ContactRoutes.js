@@ -277,7 +277,7 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
             firstName: firstName || null,
             lastName: lastName || null,
             goesBy: goesBy || null,
-            email: email || null,
+            email: email ? email.toLowerCase().trim() : null,
             phone: phone || null,
             title: title || null,
             contactCompanyId: finalContactCompanyId || null,
@@ -449,17 +449,23 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
     // Check if contact already exists (by email + companyId for uniqueness)
     let contact;
     if (contactData.email) {
-      const existingContact = await prisma.contact.findFirst({
+      // Normalize email for comparison (lowercase, trimmed)
+      const normalizedEmail = contactData.email.toLowerCase().trim();
+      
+      // Find contacts with matching email (case-insensitive by normalizing in query)
+      const allContacts = await prisma.contact.findMany({
         where: {
           companyId: companyId,
-          email: contactData.email
-        },
-        include: {
-          pipeline: true,
-          contactCompany: true
+          email: { not: null }
         }
       });
-
+      
+      // Find existing contact by normalized email comparison
+      const existingContact = allContacts.find(c => 
+        c.email && c.email.toLowerCase().trim() === normalizedEmail
+      );
+      
+      // If found, fetch full contact with relations and update
       if (existingContact) {
         console.log('⚠️ Contact already exists with this email - updating instead of creating:', existingContact.id);
         
@@ -517,7 +523,7 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
             firstName: contactData.firstName || null,
             lastName: contactData.lastName || null,
             goesBy: contactData.goesBy || null,
-            email: contactData.email || null,
+            email: contactData.email ? contactData.email.toLowerCase().trim() : null,
             phone: contactData.phone || null,
             title: contactData.title || null,
             contactCompanyId: contactCompanyId,
