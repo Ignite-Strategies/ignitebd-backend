@@ -11,6 +11,8 @@ import createOwnerRoute from './routes/Owner/CreateOwnerRoute.js';
 import ownerProfileSetupRoute from './routes/Owner/OwnerProfileSetupRoute.js';
 import ownerHydrateRoute from './routes/Owner/IgniteUniversalHydrateRoute.js';
 import createCompanyHQRoute from './routes/Company/CreateCompanyHQRoute.js';
+import proposalRoutes from './routes/Proposal/ProposalRoutes.js';
+import pipelineConfigRoute from './routes/pipelineConfigRoute.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -56,6 +58,8 @@ app.use('/api/owner', createOwnerRoute);        // Owner create/upsert route
 app.use('/api/owner', ownerProfileSetupRoute);   // Owner profile setup route
 app.use('/api/owner', ownerHydrateRoute);        // Owner hydrate route (universal hydration)
 app.use('/api/companyhq', createCompanyHQRoute);  // CompanyHQ create route
+app.use('/api/proposals', proposalRoutes);      // Proposal CRUD routes
+app.use('/api/pipelines', pipelineConfigRoute); // Pipeline config route
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ignite Activation API is running' });      
