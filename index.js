@@ -11,8 +11,7 @@ import createOwnerRoute from './routes/Owner/CreateOwnerRoute.js';
 import ownerProfileSetupRoute from './routes/Owner/OwnerProfileSetupRoute.js';
 import ownerHydrateRoute from './routes/Owner/IgniteUniversalHydrateRoute.js';
 import createCompanyHQRoute from './routes/Company/CreateCompanyHQRoute.js';
-// TODO: Uncomment after ProposalRoutes.js is committed to repo
-// import proposalRoutes from './routes/Proposal/ProposalRoutes.js';
+import proposalRoutes from './routes/Proposal/ProposalRoutes.js';
 import pipelineConfigRoute from './routes/pipelineConfigRoute.js';
 import contactRoutes from './routes/Contact/ContactRoutes.js';
 
@@ -60,8 +59,7 @@ app.use('/api/owner', createOwnerRoute);        // Owner create/upsert route
 app.use('/api/owner', ownerProfileSetupRoute);   // Owner profile setup route
 app.use('/api/owner', ownerHydrateRoute);        // Owner hydrate route (universal hydration)
 app.use('/api/companyhq', createCompanyHQRoute);  // CompanyHQ create route
-// TODO: Uncomment after ProposalRoutes.js is committed to repo
-// app.use('/api/proposals', proposalRoutes);      // Proposal CRUD routes
+app.use('/api/proposals', proposalRoutes);      // Proposal CRUD routes
 app.use('/api/pipelines', pipelineConfigRoute); // Pipeline config route
 app.use('/api/contacts', contactRoutes);        // Contact CRUD routes
 
