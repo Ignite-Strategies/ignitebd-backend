@@ -21,48 +21,56 @@ export const ALL_STAGES = [
   'interest',
   'meeting',
   'proposal',
-  'negotiation',
-  'qualified',
+  'contract',
+  'contract-signed',  // Conversion point → becomes client
   // Client stages
-  'onboarding',
-  'active',
+  'kickoff',
+  'work-started',
+  'work-delivered',
+  'sustainment',
   'renewal',
-  'upsell',
+  'terminated-contract',
   // Collaborator stages
-  'initial',
-  'active',
-  'partnership',
+  'interest',
+  'meeting',
+  'moa',
+  'agreement',
   // Institution stages
-  'awareness',
-  'engagement',
-  'partnership'
+  'interest',
+  'meeting',
+  'moa',
+  'agreement'
 ];
 
 // PIPELINE-SPECIFIC STAGES
 // Each pipeline type has its own stages
 export const PIPELINE_STAGES = {
   'prospect': [
-    'interest',        // Initial interest expressed
-    'meeting',         // Meeting scheduled/held
-    'proposal',        // Proposal sent
-    'negotiation',     // Negotiating terms
-    'qualified'        // Qualified lead
+    'interest',          // Initial interest expressed
+    'meeting',           // Meeting scheduled/held
+    'proposal',          // Proposal sent
+    'contract',          // Contract in progress
+    'contract-signed'    // Contract signed → CONVERTS TO CLIENT
   ],
   'client': [
-    'onboarding',      // New client onboarding
-    'active',          // Active client
-    'renewal',         // Renewal period
-    'upsell'           // Upsell opportunity
+    'kickoff',           // Project kickoff
+    'work-started',      // Work has started
+    'work-delivered',    // Work delivered
+    'sustainment',       // Sustainment phase
+    'renewal',           // Renewal (upsell - starting new work)
+    'terminated-contract' // Contract terminated
   ],
   'collaborator': [
-    'initial',         // Initial contact
-    'active',          // Active collaboration
-    'partnership'      // Formal partnership
+    'interest',         // Initial interest
+    'meeting',          // Meeting scheduled/held
+    'moa',              // Memorandum of Agreement
+    'agreement'         // Formal agreement
   ],
   'institution': [
-    'awareness',       // Awareness stage
-    'engagement',      // Engagement stage
-    'partnership'      // Partnership stage
+    'interest',         // Initial interest
+    'meeting',          // Meeting scheduled/held
+    'moa',              // Memorandum of Agreement
+    'agreement'         // Formal agreement
   ]
 };
 

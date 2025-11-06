@@ -6,6 +6,8 @@
 
 import express from 'express';
 import { getPipelineConfig } from '../config/pipelineConfig.js';
+import { BUYER_TYPES, BUYER_LABELS } from '../buyerconfig.js';
+import { HOW_MET_TYPES, HOW_MET_LABELS } from '../config/howMetConfig.js';
 
 const router = express.Router();
 
@@ -17,7 +19,15 @@ router.get('/config', (req, res) => {
       success: true,
       pipelines: config.pipelines,
       officialPipelines: config.officialPipelines,
-      allStages: config.allStages
+      allStages: config.allStages,
+      buyerDecision: {
+        types: BUYER_TYPES,
+        labels: BUYER_LABELS
+      },
+      howMet: {
+        types: HOW_MET_TYPES,
+        labels: HOW_MET_LABELS
+      }
     });
   } catch (error) {
     console.error('Error getting pipeline config:', error);

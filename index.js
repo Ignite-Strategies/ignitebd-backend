@@ -14,6 +14,7 @@ import createCompanyHQRoute from './routes/Company/CreateCompanyHQRoute.js';
 // TODO: Uncomment after ProposalRoutes.js is committed to repo
 // import proposalRoutes from './routes/Proposal/ProposalRoutes.js';
 import pipelineConfigRoute from './routes/pipelineConfigRoute.js';
+import contactRoutes from './routes/Contact/ContactRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -62,6 +63,7 @@ app.use('/api/companyhq', createCompanyHQRoute);  // CompanyHQ create route
 // TODO: Uncomment after ProposalRoutes.js is committed to repo
 // app.use('/api/proposals', proposalRoutes);      // Proposal CRUD routes
 app.use('/api/pipelines', pipelineConfigRoute); // Pipeline config route
+app.use('/api/contacts', contactRoutes);        // Contact CRUD routes
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ignite Activation API is running' });      

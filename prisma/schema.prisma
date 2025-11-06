@@ -43,6 +43,7 @@ model CompanyHQ {
   owner            Owner         @relation("OwnerOf", fields: [ownerId], references: [id])
   contactLists     ContactList[]
   contacts         Contact[]
+  proposals        Proposal[]
 
   @@map("company_hqs")
 }
@@ -53,6 +54,7 @@ model Company {
   companyName     String
   address         String?
   industry        String?
+  website         String?   // Website URL (inferred from email domain or manually entered)
   revenue         Float?
   yearsInBusiness Int?
   proposalId      String?
@@ -62,6 +64,7 @@ model Company {
   updatedAt       DateTime  @updatedAt
   companyHQ       CompanyHQ @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
   contacts        Contact[]
+  proposals       Proposal[] // Reverse relation - proposals linked to this company
 
   @@map("companies")
 }
@@ -92,7 +95,7 @@ model Contact {
   contactCompanyId String?
   buyerDecision    String?
   howMet           String?
-  photoURL         String?
+  notes            String?      // Notes/context about the contact
   contactListId    String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -114,4 +117,36 @@ model Pipeline {
   contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@map("pipelines")
+}
+
+model Proposal {
+  id              String    @id @default(cuid())
+  companyHQId     String    // Multi-tenancy - scoped to CompanyHQ
+  companyHQ       CompanyHQ @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
+  
+  // Client information
+  clientName        String
+  clientCompany   String    // Company name (can link to Company model later via companyId)
+  companyId       String?   // Optional: Link to Company model (prospect/client company)
+  company         Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  
+  // Proposal details
+  purpose         String?   // Purpose/description of the proposal
+  status          String    @default("draft") // "draft" | "active" | "approved" | "rejected"
+  totalPrice      Float?    // Total price of all services
+  
+  // Proposal structure (stored as JSON for flexibility)
+  serviceInstances Json?    // Array of ProposalServiceInstance (from ProposalBuilder)
+  phases           Json?    // Array of Phase objects (with deliverables, activities, kpis)
+  milestones       Json?    // Array of Milestone objects (week, label, completed)
+  compensation     Json?    // Compensation object (total, currency, breakdown, paymentSchedule)
+  
+  // Metadata
+  dateIssued      DateTime? // Date proposal was issued
+  preparedBy      String?   // Who prepared the proposal
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("proposals")
 }
