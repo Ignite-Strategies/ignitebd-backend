@@ -85,21 +85,21 @@ model ContactList {
 
 model Contact {
   id               String       @id @default(cuid())
-  companyId        String
+  crmId            String       // CompanyHQId (tenant identifier) - renamed from companyId for clarity
   firstName        String?
   lastName         String?
   goesBy           String?
   email            String?
   phone            String?
   title            String?
-  contactCompanyId String?
+  contactCompanyId String?      // Company they work for (prospect/client company)
   buyerDecision    String?
   howMet           String?
   notes            String?      // Notes/context about the contact
   contactListId    String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-  companyHQ        CompanyHQ    @relation(fields: [companyId], references: [id])
+  companyHQ        CompanyHQ    @relation(fields: [crmId], references: [id])
   contactCompany   Company?     @relation(fields: [contactCompanyId], references: [id])
   contactList      ContactList? @relation(fields: [contactListId], references: [id])
   pipeline         Pipeline?

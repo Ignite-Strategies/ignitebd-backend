@@ -33,7 +33,7 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
 
     // Build where clause
     const where = {
-      companyId: companyHQId  // Direct CompanyHQId relationship
+      crmId: companyHQId  // Direct CompanyHQId relationship (renamed from companyId to crmId)
     };
 
     // Add pipeline filter if provided
@@ -125,7 +125,7 @@ router.get('/:contactId', verifyFirebaseToken, async (req, res) => {
  * Create a new contact
  * 
  * Body:
- * - companyId (required) - CompanyHQId (tenant identifier)
+ * - crmId (required) - CompanyHQId (tenant identifier) - renamed from companyId for clarity
  * - firstName (optional)
  * - lastName (optional)
  * - goesBy (optional)
@@ -147,7 +147,7 @@ router.get('/:contactId', verifyFirebaseToken, async (req, res) => {
 router.post('/', verifyFirebaseToken, async (req, res) => {
   try {
     const {
-      companyId,  // CompanyHQId
+      crmId,  // CompanyHQId (renamed from companyId for clarity)
       firstName,
       lastName,
       goesBy,
@@ -163,17 +163,17 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
       notes
     } = req.body;
 
-    // Validate companyId (CompanyHQId)
-    if (!companyId) {
+    // Validate crmId (CompanyHQId)
+    if (!crmId) {
       return res.status(400).json({
         success: false,
-        error: 'companyId (CompanyHQId) is required'
+        error: 'crmId (CompanyHQId) is required'
       });
     }
 
     // Verify CompanyHQ exists
     const companyHQ = await prisma.companyHQ.findUnique({
-      where: { id: companyId }
+      where: { id: crmId }
     });
 
     if (!companyHQ) {
@@ -192,7 +192,7 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
       // Find or create Company (case-insensitive lookup)
       const allCompanies = await prisma.company.findMany({
         where: {
-          companyHQId: companyId
+          companyHQId: crmId
         }
       });
       
@@ -211,11 +211,11 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
       if (!company) {
         company = await prisma.company.create({
           data: {
-            companyHQId: companyId,
+            companyHQId: crmId,
             companyName: normalizedCompanyName  // Store normalized name
           }
         });
-        console.log(`✅ Created new company: ${normalizedCompanyName} for companyHQId: ${companyId}`);
+        console.log(`✅ Created new company: ${normalizedCompanyName} for companyHQId: ${crmId}`);
       } else {
         console.log(`✅ Found existing company: ${company.companyName} (id: ${company.id})`);
       }
@@ -223,12 +223,12 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
       finalContactCompanyId = company.id;
     }
 
-    // Check if contact already exists (by email + companyId for uniqueness)
+    // Check if contact already exists (by email + crmId for uniqueness)
     let contact;
     if (email) {
       const existingContact = await prisma.contact.findFirst({
         where: {
-          companyId: companyId,
+          crmId: crmId,
           email: email
         },
         include: {
@@ -290,7 +290,7 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
         // Create new contact
         contact = await prisma.contact.create({
           data: {
-            companyId: companyId,
+            crmId: crmId,
             firstName: firstName || null,
             lastName: lastName || null,
             goesBy: goesBy || null,
@@ -323,7 +323,7 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
       // No email provided - create new contact (can't check for duplicates)
       contact = await prisma.contact.create({
         data: {
-          companyId: companyId,
+          crmId: crmId,
           firstName: firstName || null,
           lastName: lastName || null,
           goesBy: goesBy || null,
@@ -374,7 +374,7 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
  * Used by ContactManual form
  * 
  * Body:
- * - contact: { companyId, firstName, lastName, goesBy, email, phone, title, buyerDecision, howMet, notes }
+ * - contact: { crmId, firstName, lastName, goesBy, email, phone, title, buyerDecision, howMet, notes }
  * - company: { companyName, address, industry, revenue, yearsInBusiness } (optional)
  * - pipeline: { pipeline, stage } (optional)
  * 
@@ -387,18 +387,18 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
     const { contact: contactData, company: companyData, pipeline: pipelineData } = req.body;
 
     // Validate contact data
-    if (!contactData || !contactData.companyId) {
+    if (!contactData || !contactData.crmId) {
       return res.status(400).json({
         success: false,
-        error: 'contact.companyId (CompanyHQId) is required'
+        error: 'contact.crmId (CompanyHQId) is required'
       });
     }
 
-    const companyId = contactData.companyId;
+    const crmId = contactData.crmId;
 
     // Verify CompanyHQ exists
     const companyHQ = await prisma.companyHQ.findUnique({
-      where: { id: companyId }
+      where: { id: crmId }
     });
 
     if (!companyHQ) {
@@ -426,7 +426,7 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
       // Find or create Company (case-insensitive lookup)
       const allCompanies = await prisma.company.findMany({
         where: {
-          companyHQId: companyId
+          companyHQId: crmId
         }
       });
       
@@ -445,7 +445,7 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
       if (!company) {
         company = await prisma.company.create({
           data: {
-            companyHQId: companyId,
+            companyHQId: crmId,
             companyName: normalizedCompanyName,  // Store normalized name
             address: companyData.address || null,
             industry: companyData.industry || null,
@@ -454,7 +454,7 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
             yearsInBusiness: companyData.yearsInBusiness || null
           }
         });
-        console.log(`✅ Created new company: ${normalizedCompanyName} for companyHQId: ${companyId}`);
+        console.log(`✅ Created new company: ${normalizedCompanyName} for companyHQId: ${crmId}`);
         if (websiteUrl) {
           console.log(`✅ Stored website URL: ${websiteUrl}`);
         }
@@ -480,7 +480,7 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
       }
     }
 
-    // Check if contact already exists (by email + companyId for uniqueness)
+    // Check if contact already exists (by email + crmId for uniqueness)
     let contact;
     if (contactData.email) {
       // Normalize email for comparison (lowercase, trimmed)
@@ -489,7 +489,7 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
       // Find contacts with matching email (case-insensitive by normalizing in query)
       const allContacts = await prisma.contact.findMany({
         where: {
-          companyId: companyId,
+          crmId: crmId,
           email: { not: null }
         }
       });
@@ -553,7 +553,7 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
         // Create new contact
         contact = await prisma.contact.create({
           data: {
-            companyId: companyId,
+            crmId: crmId,
             firstName: contactData.firstName || null,
             lastName: contactData.lastName || null,
             goesBy: contactData.goesBy || null,
@@ -584,19 +584,19 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
       }
     } else {
       // No email provided - create new contact (can't check for duplicates)
-      contact = await prisma.contact.create({
-        data: {
-          companyId: companyId,
-          firstName: contactData.firstName || null,
-          lastName: contactData.lastName || null,
-          goesBy: contactData.goesBy || null,
-          email: contactData.email || null,
-          phone: contactData.phone || null,
-          title: contactData.title || null,
-          contactCompanyId: contactCompanyId,
-          buyerDecision: contactData.buyerDecision || null,
-          howMet: contactData.howMet || null,
-          notes: contactData.notes || null,
+        contact = await prisma.contact.create({
+          data: {
+            crmId: crmId,
+            firstName: contactData.firstName || null,
+            lastName: contactData.lastName || null,
+            goesBy: contactData.goesBy || null,
+            email: contactData.email || null,
+            phone: contactData.phone || null,
+            title: contactData.title || null,
+            contactCompanyId: contactCompanyId,
+            buyerDecision: contactData.buyerDecision || null,
+            howMet: contactData.howMet || null,
+            notes: contactData.notes || null,
           // Create Pipeline if pipelineData provided
           ...(pipelineData && pipelineData.pipeline && {
             pipeline: {
@@ -791,7 +791,7 @@ router.post('/cleanup-duplicates', verifyFirebaseToken, async (req, res) => {
     // Find all contacts with emails
     const contacts = await prisma.contact.findMany({
       where: {
-        companyId: companyHQId,
+        crmId: companyHQId,
         email: { not: null }
       },
       orderBy: {
