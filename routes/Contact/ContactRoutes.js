@@ -186,21 +186,38 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
     // Handle Company creation/finding if contactCompanyName is provided
     let finalContactCompanyId = contactCompanyId;
     if (contactCompanyName && !contactCompanyId) {
-      // Find or create Company
-      let company = await prisma.company.findFirst({
+      // Normalize company name for lookup (trim, case-insensitive)
+      const normalizedCompanyName = contactCompanyName.trim();
+      
+      // Find or create Company (case-insensitive lookup)
+      const allCompanies = await prisma.company.findMany({
         where: {
-          companyHQId: companyId,
-          companyName: contactCompanyName
+          companyHQId: companyId
         }
       });
+      
+      // Find existing company by normalized name (case-insensitive)
+      let company = allCompanies.find(c => 
+        c.companyName && c.companyName.trim().toLowerCase() === normalizedCompanyName.toLowerCase()
+      );
+      
+      if (company) {
+        // Fetch full company record
+        company = await prisma.company.findUnique({
+          where: { id: company.id }
+        });
+      }
 
       if (!company) {
         company = await prisma.company.create({
           data: {
             companyHQId: companyId,
-            companyName: contactCompanyName
+            companyName: normalizedCompanyName  // Store normalized name
           }
         });
+        console.log(`✅ Created new company: ${normalizedCompanyName} for companyHQId: ${companyId}`);
+      } else {
+        console.log(`✅ Found existing company: ${company.companyName} (id: ${company.id})`);
       }
 
       finalContactCompanyId = company.id;
@@ -394,6 +411,9 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
     // Handle Company creation/finding if companyData is provided
     let contactCompanyId = contactData.contactCompanyId || null;
     if (companyData && companyData.companyName) {
+      // Normalize company name for lookup (trim, case-insensitive)
+      const normalizedCompanyName = companyData.companyName.trim();
+      
       // Infer website from email if not provided
       let websiteUrl = companyData.website || companyData.url || companyData.companyURL;
       if (!websiteUrl && contactData.email) {
@@ -403,19 +423,30 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
         }
       }
 
-      // Find or create Company
-      let company = await prisma.company.findFirst({
+      // Find or create Company (case-insensitive lookup)
+      const allCompanies = await prisma.company.findMany({
         where: {
-          companyHQId: companyId,
-          companyName: companyData.companyName
+          companyHQId: companyId
         }
       });
+      
+      // Find existing company by normalized name (case-insensitive)
+      let company = allCompanies.find(c => 
+        c.companyName && c.companyName.trim().toLowerCase() === normalizedCompanyName.toLowerCase()
+      );
+      
+      if (company) {
+        // Fetch full company record
+        company = await prisma.company.findUnique({
+          where: { id: company.id }
+        });
+      }
 
       if (!company) {
         company = await prisma.company.create({
           data: {
             companyHQId: companyId,
-            companyName: companyData.companyName,
+            companyName: normalizedCompanyName,  // Store normalized name
             address: companyData.address || null,
             industry: companyData.industry || null,
             website: websiteUrl || null,  // Store inferred or manually entered website
@@ -423,17 +454,20 @@ router.post('/universal-create', verifyFirebaseToken, async (req, res) => {
             yearsInBusiness: companyData.yearsInBusiness || null
           }
         });
-        
+        console.log(`✅ Created new company: ${normalizedCompanyName} for companyHQId: ${companyId}`);
         if (websiteUrl) {
           console.log(`✅ Stored website URL: ${websiteUrl}`);
         }
-      } else if (websiteUrl && !company.website) {
-        // Company exists but no website - update with inferred URL
-        company = await prisma.company.update({
-          where: { id: company.id },
-          data: { website: websiteUrl }
-        });
-        console.log(`✅ Updated company with inferred website URL: ${websiteUrl}`);
+      } else {
+        console.log(`✅ Found existing company: ${company.companyName} (id: ${company.id})`);
+        if (websiteUrl && !company.website) {
+          // Company exists but no website - update with inferred URL
+          company = await prisma.company.update({
+            where: { id: company.id },
+            data: { website: websiteUrl }
+          });
+          console.log(`✅ Updated company with inferred website URL: ${websiteUrl}`);
+        }
       }
 
       contactCompanyId = company.id;
