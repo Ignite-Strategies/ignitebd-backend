@@ -44,6 +44,7 @@ model CompanyHQ {
   contactLists     ContactList[]
   contacts         Contact[]
   proposals        Proposal[]
+  personas         Persona[]
 
   @@map("company_hqs")
 }
@@ -149,4 +150,20 @@ model Proposal {
   updatedAt       DateTime  @updatedAt
 
   @@map("proposals")
+}
+
+model Persona {
+  id           String     @id @default(cuid())
+  companyHQId  String
+  personaName  String
+  role         String?
+  painPoints   String?
+  goals        String?
+  tagline      String?
+  callToAction String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  companyHQ    CompanyHQ  @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
+
+  @@map("personas")
 }
