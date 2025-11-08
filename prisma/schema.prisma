@@ -44,7 +44,6 @@ model CompanyHQ {
   contactLists     ContactList[]
   contacts         Contact[]
   proposals        Proposal[]
-  personas         Persona[]
 
   @@map("company_hqs")
 }
@@ -66,6 +65,7 @@ model Company {
   companyHQ       CompanyHQ @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
   contacts        Contact[]
   proposals       Proposal[] // Reverse relation - proposals linked to this company
+  personas        Persona[]
 
   @@map("companies")
 }
@@ -153,17 +153,16 @@ model Proposal {
 }
 
 model Persona {
-  id           String     @id @default(cuid())
-  companyHQId  String
+  id           String   @id @default(cuid())
+  companyId    String
   personaName  String
   role         String?
   painPoints   String?
   goals        String?
-  tagline      String?
-  callToAction String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  companyHQ    CompanyHQ  @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
+  whatTheyWant String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@map("personas")
 }
