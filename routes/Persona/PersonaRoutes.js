@@ -6,21 +6,33 @@ const router = express.Router();
 
 /**
  * GET /api/personas
- * List personas scoped to Company (prospect/client)
+ * List personas scoped to CompanyHQ (tenant)
  */
 router.get('/', verifyFirebaseToken, async (req, res) => {
   try {
-    const { companyId } = req.query;
+    const { companyHQId, productId } = req.query;
 
-    if (!companyId) {
+    if (!companyHQId) {
       return res.status(400).json({
         success: false,
-        error: 'companyId is required',
+        error: 'companyHQId is required',
       });
     }
 
     const personas = await prisma.persona.findMany({
-      where: { companyId },
+      where: {
+        companyHQId,
+        ...(productId ? { productId } : {}),
+      },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            valueProp: true,
+          },
+        },
+      },
       orderBy: { updatedAt: 'desc' },
     });
 
@@ -40,11 +52,12 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
 
 /**
  * GET /api/personas/:personaId
- * Fetch a persona by id
+ * Fetch a persona by id (optional tenant validation)
  */
 router.get('/:personaId', verifyFirebaseToken, async (req, res) => {
   try {
     const { personaId } = req.params;
+    const { companyHQId } = req.query;
 
     if (!personaId) {
       return res.status(400).json({
@@ -55,13 +68,34 @@ router.get('/:personaId', verifyFirebaseToken, async (req, res) => {
 
     const persona = await prisma.persona.findUnique({
       where: { id: personaId },
-      include: { company: true },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            valueProp: true,
+          },
+        },
+        companyHQ: {
+          select: {
+            id: true,
+            companyName: true,
+          },
+        },
+      },
     });
 
     if (!persona) {
       return res.status(404).json({
         success: false,
         error: 'Persona not found',
+      });
+    }
+
+    if (companyHQId && persona.companyHQId !== companyHQId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Persona does not belong to this tenant',
       });
     }
 
@@ -85,40 +119,95 @@ router.get('/:personaId', verifyFirebaseToken, async (req, res) => {
  */
 router.post('/upsert', verifyFirebaseToken, async (req, res) => {
   try {
-    const { id, companyId, personaName, role, painPoints, goals, whatTheyWant } = req.body || {};
+    const {
+      id,
+      companyHQId,
+      name,
+      role,
+      title,
+      industry,
+      goals,
+      painPoints,
+      desiredOutcome,
+      valuePropToPersona,
+      alignmentScore,
+      productId,
+    } = req.body || {};
 
-    if (!companyId) {
+    if (!companyHQId) {
       return res.status(400).json({
         success: false,
-        error: 'companyId is required',
+        error: 'companyHQId is required',
       });
     }
 
-    if (!personaName) {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        error: 'personaName is required',
+        error: 'name is required',
       });
     }
 
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
+    const companyHQ = await prisma.companyHQ.findUnique({
+      where: { id: companyHQId },
+      select: { id: true },
     });
 
-    if (!company) {
+    if (!companyHQ) {
       return res.status(404).json({
         success: false,
-        error: 'Company not found',
+        error: 'CompanyHQ not found',
       });
+    }
+
+    let productIdToUse = null;
+    if (productId) {
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+        select: { id: true, companyHQId: true },
+      });
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          error: 'Product not found',
+        });
+      }
+
+      if (product.companyHQId !== companyHQId) {
+        return res.status(403).json({
+          success: false,
+          error: 'Product does not belong to this tenant',
+        });
+      }
+
+      productIdToUse = product.id;
+    }
+
+    let alignmentScoreToUse = null;
+    if (alignmentScore !== undefined && alignmentScore !== null && alignmentScore !== '') {
+      const parsed = Number(alignmentScore);
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+        return res.status(400).json({
+          success: false,
+          error: 'alignmentScore must be between 0 and 100',
+        });
+      }
+      alignmentScoreToUse = Math.round(parsed);
     }
 
     const personaData = {
-      companyId,
-      personaName,
+      companyHQId,
+      name,
       role: role ?? null,
-      painPoints: painPoints ?? null,
+      title: title ?? null,
+      industry: industry ?? null,
       goals: goals ?? null,
-      whatTheyWant: whatTheyWant ?? null,
+      painPoints: painPoints ?? null,
+      desiredOutcome: desiredOutcome ?? null,
+      valuePropToPersona: valuePropToPersona ?? null,
+      alignmentScore: alignmentScoreToUse,
+      productId: productIdToUse,
     };
 
     let persona;
@@ -126,10 +215,28 @@ router.post('/upsert', verifyFirebaseToken, async (req, res) => {
       persona = await prisma.persona.update({
         where: { id },
         data: personaData,
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              valueProp: true,
+            },
+          },
+        },
       });
     } else {
       persona = await prisma.persona.create({
         data: personaData,
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              valueProp: true,
+            },
+          },
+        },
       });
     }
 
