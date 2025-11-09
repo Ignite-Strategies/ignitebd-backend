@@ -44,6 +44,8 @@ model CompanyHQ {
   contactLists     ContactList[]
   contacts         Contact[]
   proposals        Proposal[]
+  products         Product[]
+  personas         Persona[]
 
   @@map("company_hqs")
 }
@@ -65,7 +67,6 @@ model Company {
   companyHQ       CompanyHQ @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
   contacts        Contact[]
   proposals       Proposal[] // Reverse relation - proposals linked to this company
-  personas        Persona[]
 
   @@map("companies")
 }
@@ -106,6 +107,20 @@ model Contact {
   pipeline         Pipeline?
 
   @@map("contacts")
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  companyHQId String
+  name        String
+  description String?
+  valueProp   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  companyHQ   CompanyHQ @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
+  personas    Persona[]
+
+  @@map("products")
 }
 
 model Pipeline {
@@ -153,16 +168,22 @@ model Proposal {
 }
 
 model Persona {
-  id           String   @id @default(cuid())
-  companyId    String
-  personaName  String
-  role         String?
-  painPoints   String?
-  goals        String?
-  whatTheyWant String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(cuid())
+  companyHQId        String
+  name               String
+  role               String?
+  title              String?
+  industry           String?
+  goals              String?
+  painPoints         String?
+  desiredOutcome     String?
+  valuePropToPersona String?
+  alignmentScore     Int?
+  productId          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  companyHQ          CompanyHQ @relation(fields: [companyHQId], references: [id], onDelete: Cascade)
+  product            Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@map("personas")
 }
