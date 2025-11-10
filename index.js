@@ -15,6 +15,7 @@ import proposalRoutes from './routes/Proposal/ProposalRoutes.js';
 import pipelineConfigRoute from './routes/pipelineConfigRoute.js';
 import contactRoutes from './routes/Contact/ContactRoutes.js';
 import personaRoutes from './routes/Persona/PersonaRoutes.js';
+import businessIntelligenceRoutes from './routes/BusinessIntelligence/BusinessIntelligenceRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -64,6 +65,7 @@ app.use('/api/proposals', proposalRoutes);      // Proposal CRUD routes
 app.use('/api/pipelines', pipelineConfigRoute); // Pipeline config route
 app.use('/api/contacts', contactRoutes);        // Contact CRUD routes
 app.use('/api/personas', personaRoutes);        // Persona create/update routes
+app.use('/api/business-intelligence', businessIntelligenceRoutes); // Business Intelligence scoring routes
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Ignite Activation API is running' });      

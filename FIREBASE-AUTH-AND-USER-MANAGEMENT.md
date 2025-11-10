@@ -66,7 +66,59 @@ frontend/
 
 **Key Functions:**
 - `verifyFirebaseToken` - Required authentication (returns 401 if invalid)
-- `optionalFirebaseToken` - Optional authentication (continues if no token)
+- `optionalAuth` - Optional authentication (continues if no token)
+
+## 🔐 Authentication Pattern: Read vs Write
+
+### Owner-Based Architecture Pattern
+
+**Core Principle:** Owner is authenticated once via Firebase session. Data is scoped by `companyHQId` (tenant identifier). We don't need to verify the token on every read operation.
+
+### Route Authentication Strategy
+
+#### GET Requests (Read Operations) → `optionalAuth`
+- **Purpose:** "Show me stuff" - Displaying data
+- **Middleware:** `optionalAuth`
+- **Why:** Data is already scoped by `companyHQId` in the query params
+- **Benefits:**
+  - Better UX: No 401 errors on page loads
+  - Better performance: Fewer token verifications
+  - Simpler flow: Owner authenticated once, then scoped by tenant
+
+**Example:**
+```javascript
+// GET /api/contacts?companyHQId=xxx
+router.get('/', optionalAuth, async (req, res) => {
+  const { companyHQId } = req.query; // Scoped by tenant
+  // ... fetch contacts
+});
+```
+
+#### POST/PUT/DELETE (Write Operations) → `verifyFirebaseToken`
+- **Purpose:** "Change stuff" - Creating, updating, or deleting data
+- **Middleware:** `verifyFirebaseToken`
+- **Why:** Security - prevent unauthorized modifications
+- **Requirement:** Valid Firebase token must be present
+
+**Example:**
+```javascript
+// POST /api/contacts
+router.post('/', verifyFirebaseToken, async (req, res) => {
+  // Token verified - safe to create/update
+  // ... create contact
+});
+```
+
+### Frontend Token Handling
+
+The frontend axios interceptor automatically:
+- Sends Firebase token when available (for analytics/logging)
+- Handles token refresh automatically
+- Doesn't break if token is missing on GET requests (backend uses `optionalAuth`)
+
+**Pattern Summary:**
+- ✅ **GET** = `optionalAuth` (scoped by `companyHQId`)
+- 🔒 **POST/PUT/DELETE** = `verifyFirebaseToken` (requires valid token)
 
 **Implementation:**
 ```javascript

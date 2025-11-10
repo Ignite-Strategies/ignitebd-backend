@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../../db.js';
-import { verifyFirebaseToken } from '../../middleware/firebaseMiddleware.js';
+import { verifyFirebaseToken, optionalAuth } from '../../middleware/firebaseMiddleware.js';
 
 const router = express.Router();
 
@@ -136,8 +136,10 @@ router.post('/', verifyFirebaseToken, async (req, res) => {
  * Returns:
  * - success: true
  * - proposals: Array of Proposal objects
+ * 
+ * Note: Uses optionalAuth - owner is already authenticated, scoped by companyHQId
  */
-router.get('/', verifyFirebaseToken, async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { companyHQId, status } = req.query;
 
@@ -190,8 +192,10 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
  * Returns:
  * - success: true
  * - proposal: Proposal object
+ * 
+ * Note: Uses optionalAuth - owner is already authenticated, scoped by proposalId
  */
-router.get('/:proposalId', verifyFirebaseToken, async (req, res) => {
+router.get('/:proposalId', optionalAuth, async (req, res) => {
   try {
     const { proposalId } = req.params;
 

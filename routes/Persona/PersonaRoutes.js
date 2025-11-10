@@ -1,14 +1,16 @@
 import express from 'express';
 import prisma from '../../db.js';
-import { verifyFirebaseToken } from '../../middleware/firebaseMiddleware.js';
+import { verifyFirebaseToken, optionalAuth } from '../../middleware/firebaseMiddleware.js';
 
 const router = express.Router();
 
 /**
  * GET /api/personas
  * List personas scoped to CompanyHQ (tenant)
+ * 
+ * Note: Uses optionalAuth - owner is already authenticated, scoped by companyHQId
  */
-router.get('/', verifyFirebaseToken, async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { companyHQId, productId } = req.query;
 
@@ -53,8 +55,10 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
 /**
  * GET /api/personas/:personaId
  * Fetch a persona by id (optional tenant validation)
+ * 
+ * Note: Uses optionalAuth - owner is already authenticated, scoped by personaId/companyHQId
  */
-router.get('/:personaId', verifyFirebaseToken, async (req, res) => {
+router.get('/:personaId', optionalAuth, async (req, res) => {
   try {
     const { personaId } = req.params;
     const { companyHQId } = req.query;

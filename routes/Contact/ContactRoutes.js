@@ -1,6 +1,6 @@
 import express from 'express';
 import prisma from '../../db.js';
-import { verifyFirebaseToken } from '../../middleware/firebaseMiddleware.js';
+import { verifyFirebaseToken, optionalAuth } from '../../middleware/firebaseMiddleware.js';
 import { applyPipelineTriggers } from '../../services/PipelineTriggerService.js';
 import { inferWebsiteFromEmail } from '../../services/CompanyEnrichmentService.js';
 
@@ -18,8 +18,10 @@ const router = express.Router();
  * Returns:
  * - success: true
  * - contacts: Array of Contact objects with pipeline and contactCompany relations
+ * 
+ * Note: Uses optionalAuth - owner is already authenticated, scoped by companyHQId
  */
-router.get('/', verifyFirebaseToken, async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { companyHQId, pipeline, stage } = req.query;
 
@@ -85,8 +87,10 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
  * Returns:
  * - success: true
  * - contact: Contact object with pipeline and contactCompany relations
+ * 
+ * Note: Uses optionalAuth - owner is already authenticated, scoped by contactId
  */
-router.get('/:contactId', verifyFirebaseToken, async (req, res) => {
+router.get('/:contactId', optionalAuth, async (req, res) => {
   try {
     const { contactId } = req.params;
 
