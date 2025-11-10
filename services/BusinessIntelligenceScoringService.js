@@ -1,14 +1,8 @@
-import OpenAI from 'openai';
+import { OpenAI } from 'openai';
 import prisma from '../db.js';
 
-// Initialize OpenAI
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('⚠️ OPENAI_API_KEY not set - Business Intelligence scoring will fail');
-}
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI (reads OPENAI_API_KEY from env automatically)
+const openai = new OpenAI();
 
 /**
  * Business Intelligence Scoring Service
@@ -23,11 +17,6 @@ const openai = new OpenAI({
  */
 export async function calculateFitScore(contactId, productId, personaId = null) {
   try {
-    // Check if OpenAI API key is configured
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY environment variable is not set');
-    }
-
     console.log(`🎯 Calculating Fit Score for Contact: ${contactId}, Product: ${productId}`);
 
     // Fetch all required data
@@ -137,8 +126,11 @@ Compute total_score = sum(all five) and return JSON with keys:
 Return ONLY valid JSON. No markdown, no code blocks, just the JSON object.`;
 
     // Call OpenAI
+    console.log('🤖 Calling OpenAI for fit score calculation...');
+    
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
+      temperature: 0.7,
       messages: [
         {
           role: 'system',
@@ -149,21 +141,21 @@ Return ONLY valid JSON. No markdown, no code blocks, just the JSON object.`;
           content: userPrompt,
         },
       ],
-      temperature: 0.7,
-      max_tokens: 500,
-      response_format: { type: 'json_object' }, // Force JSON response
     });
 
-    const gptResponse = completion.choices[0].message.content;
-    let scoringResult;
+    const content = completion.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error('No GPT output received.');
+    }
 
+    // Parse JSON response
+    let scoringResult;
     try {
-      // Parse JSON response
-      scoringResult = JSON.parse(gptResponse);
+      scoringResult = JSON.parse(content);
     } catch (parseError) {
       console.error('❌ Failed to parse OpenAI JSON response:', parseError);
       // Try to extract JSON from markdown code blocks
-      const jsonMatch = gptResponse.match(/\{[\s\S]*\}/);
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         scoringResult = JSON.parse(jsonMatch[0]);
       } else {
@@ -232,7 +224,7 @@ Return ONLY valid JSON. No markdown, no code blocks, just the JSON object.`;
         totalScore: scoringResult.total_score,
       },
       summary: scoringResult.summary,
-      rawResponse: gptResponse,
+      rawResponse: content,
     };
   } catch (error) {
     console.error('❌ Business Intelligence Scoring failed:', error);
